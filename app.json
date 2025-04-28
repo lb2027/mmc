@@ -1,5 +1,6 @@
 {
   "expo": {
+    "scheme": "emmc",
     "name": "mmc",
     "slug": "mmc",
     "version": "1.0.0",
