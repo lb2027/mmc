@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { ScrollView, Dimensions } from 'react-native';
-import PageA from './a';
+import PageA from './user/user';
 import PageB from './product/product';
-import PageC from './c';
+import PageC from './transaction/transaction';
 
 const screenWidth = Dimensions.get('window').width;
 
