@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { View, TextInput, Button, Text, StyleSheet, Alert } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 
-export default function Register() {
+export default function RegisterPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -11,16 +11,14 @@ export default function Register() {
     try {
       const response = await fetch('http://103.16.116.58:5050/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
 
       const data = await response.json();
       if (response.ok) {
         console.log('Token:', data.token);
-        router.replace('../mainpage');
+        router.replace('/login');
       } else {
         Alert.alert('Register Failed', data.message || 'Registration error');
       }
@@ -32,32 +30,86 @@ export default function Register() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Register</Text>
-      <TextInput
-        placeholder="Username"
-        value={username}
-        onChangeText={setUsername}
-        style={styles.input}
-      />
-      <TextInput
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        style={styles.input}
-      />
-      <Button title="Register" onPress={handleRegister} />
+      <Text style={styles.title}>BINTANG{"\n"}JAWA</Text>
 
-      <Text style={styles.link} onPress={() => router.push('/login')}>
-        Already have an account? Login
-      </Text>
+      <View style={styles.formContainer}>
+        <TextInput
+          placeholder="Username"
+          placeholderTextColor="#999"
+          value={username}
+          onChangeText={setUsername}
+          style={styles.input}
+        />
+        <TextInput
+          placeholder="Password"
+          placeholderTextColor="#999"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          style={styles.input}
+        />
+
+        <TouchableOpacity style={styles.button} onPress={handleRegister}>
+          <Text style={styles.buttonText}>Register</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push('./login')}>
+          <Text style={styles.registerText}>Already have an account? Login</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20 },
-  input: { borderWidth: 1, marginVertical: 10, padding: 10, borderRadius: 5 },
-  title: { fontSize: 24, marginBottom: 20, textAlign: 'center' },
-  link: { marginTop: 20, textAlign: 'center', color: 'blue' },
+  container: {
+    flex: 1,
+    backgroundColor: '#F3AA36',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  formContainer: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  input: {
+    backgroundColor: '#F0F0F0',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 15,
+    fontSize: 16,
+  },
+  button: {
+    backgroundColor: '#363636',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  registerText: {
+    color: '#000',
+    textAlign: 'center',
+    marginTop: 15,
+    textDecorationLine: 'underline',
+  },
 });
