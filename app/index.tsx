@@ -20,7 +20,8 @@ export default function Index() {
         }
         
       } else {
-        router.replace('/screen/init/splash'); // Redirect to splash screen if not authenticated
+        //router.replace('/screen/init/splash'); // Redirect to splash screen if not authenticated
+        router.replace('/screen/form/form');
       }
     };
 
