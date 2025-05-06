@@ -6,6 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { useFonts, Poppins_400Regular, Poppins_700Bold } from '@expo-google-fonts/poppins';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -13,9 +14,9 @@ export default function PageUser() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false); // new state
   const [newUser, setNewUser] = useState({
     username: '',
-    email: '',
     password: '',
     role: '',
   });
@@ -40,11 +41,6 @@ export default function PageUser() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleLogout = async () => {
-    await AsyncStorage.removeItem('token');
-    router.replace('/');
   };
 
   const logout = async () => {
@@ -74,6 +70,7 @@ export default function PageUser() {
         if (!result || JSON.parse(result)) {
           Alert.alert('Success', 'User successfully added!');
           setShowModal(false);
+          setNewUser({ username: '', password: '', role: '' });
           fetchUsers();
         } else {
           Alert.alert('Failed', 'There was an error while adding the user.');
@@ -87,8 +84,10 @@ export default function PageUser() {
     }
   };
 
-  const renderCard = ({ item }: { item: any }) => {
+  const UserCard = ({ item }: { item: any }) => {
+    const [showPassword, setShowPassword] = useState(false);
     const cardColor = item.role === 'admin' ? '#ffe0b2' : '#f0f0f0';
+
     return (
       <TouchableOpacity
         onPress={() =>
@@ -101,17 +100,58 @@ export default function PageUser() {
           backgroundColor: cardColor,
           borderRadius: 10,
           padding: 10,
-          margin: 5,
-          flex: 1,
-          minWidth: (screenWidth / 2) - 15,
+          marginVertical: 5,
+          width: '100%',
         }}
       >
-        <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{item.username}</Text>
-        <Text>{item.email}</Text>
-        <Text style={{ marginTop: 5, fontStyle: 'italic' }}>Role: {item.role}</Text>
+        <View style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <Text style={{ fontFamily: 'Poppins_700Bold', fontSize: 16 }}>
+            {item.username}
+          </Text>
+          <Text
+            style={{
+              fontFamily: 'Poppins_700Bold',
+              fontStyle: 'italic',
+              fontSize: 12,
+              color: '#444',
+            }}
+          >
+            {item.role}
+          </Text>
+        </View>
+
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginTop: 5,
+        }}>
+          <Text style={{ flex: 1 }}>
+            {showPassword ? item.password : '•'.repeat(item.password?.length || 8)}
+          </Text>
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+            <Ionicons
+              name={showPassword ? 'eye-off' : 'eye'}
+              size={20}
+              color="gray"
+            />
+          </TouchableOpacity>
+        </View>
       </TouchableOpacity>
     );
   };
+
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return <ActivityIndicator size="large" color="#F3AA36" style={{ marginTop: 50 }} />;
+  }
 
   return (
     <View style={{ flex: 1, width: screenWidth, paddingHorizontal: 10 }}>
@@ -127,7 +167,7 @@ export default function PageUser() {
         borderBottomLeftRadius: 15,
         borderBottomRightRadius: 15,
       }}>
-        <Text style={{ fontSize: 24, color: 'white', fontWeight: 'bold' }}>Manage Users</Text>
+        <Text style={{ fontFamily: 'Poppins_700Bold', fontSize: 24, color: 'white' }}>Users</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <TouchableOpacity
             onPress={() => setShowModal(true)}
@@ -137,7 +177,7 @@ export default function PageUser() {
               paddingHorizontal: 12,
               borderRadius: 8
             }}>
-            <Text style={{ color: '#F3AA36', fontWeight: 'bold' }}>+ Add</Text>
+            <Text style={{ color: '#F3AA36', fontFamily: 'Poppins_700Bold' }}>+ Add</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={logout}>
             <Ionicons name="log-out-outline" size={24} color="white" />
@@ -150,9 +190,9 @@ export default function PageUser() {
       ) : (
         <FlatList
           data={users}
-          numColumns={2}
+          numColumns={1}
           keyExtractor={(item, index) => item.user_id?.toString() ?? index.toString()}
-          renderItem={renderCard}
+          renderItem={({ item }) => <UserCard item={item} />}
           contentContainerStyle={{ paddingTop: 10, paddingBottom: 60 }}
         />
       )}
@@ -167,22 +207,71 @@ export default function PageUser() {
             width: '85%', backgroundColor: 'white',
             borderRadius: 16, padding: 20, elevation: 5
           }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}>
+            <Text style={{ fontFamily: 'Poppins_700Bold', fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}>
               Add a new User
             </Text>
-            {['Username', 'Email', 'Password', 'Role'].map((placeholder, i) => (
-              <TextInput
-                key={i}
-                placeholder={placeholder}
-                secureTextEntry={placeholder === 'Password'}
-                value={(Object.values(newUser) as string[])[i]}
-                onChangeText={(text) => setNewUser({ ...newUser, [Object.keys(newUser)[i]]: text })}
-                style={{
-                  borderWidth: 1, borderColor: '#ccc',
-                  borderRadius: 8, padding: 10, marginBottom: 10
-                }}
-              />
-            ))}
+
+            <TextInput
+              placeholder="Username"
+              value={newUser.username}
+              onChangeText={(text) => setNewUser({ ...newUser, username: text })}
+              style={{
+                borderWidth: 1, borderColor: '#ccc',
+                borderRadius: 8, padding: 10, marginBottom: 10
+              }}
+            />
+
+            <TextInput
+              placeholder="Password"
+              secureTextEntry
+              value={newUser.password}
+              onChangeText={(text) => setNewUser({ ...newUser, password: text })}
+              style={{
+                borderWidth: 1, borderColor: '#ccc',
+                borderRadius: 8, padding: 10, marginBottom: 10
+              }}
+            />
+
+            {/* Role Dropdown */}
+            <TouchableOpacity
+              onPress={() => setShowRoleDropdown(!showRoleDropdown)}
+              style={{
+                borderWidth: 1,
+                borderColor: '#ccc',
+                borderRadius: 8,
+                padding: 10,
+                marginBottom: 10,
+                justifyContent: 'center'
+              }}
+            >
+              <Text style={{ color: newUser.role ? 'black' : '#aaa' }}>
+                {newUser.role || 'Select Role'}
+              </Text>
+            </TouchableOpacity>
+
+            {showRoleDropdown && (
+              <View style={{
+                borderWidth: 1,
+                borderColor: '#ccc',
+                borderRadius: 8,
+                marginBottom: 10,
+                backgroundColor: 'white'
+              }}>
+                {['admin', 'staff'].map((roleOption) => (
+                  <TouchableOpacity
+                    key={roleOption}
+                    onPress={() => {
+                      setNewUser({ ...newUser, role: roleOption });
+                      setShowRoleDropdown(false);
+                    }}
+                    style={{ padding: 10 }}
+                  >
+                    <Text style={{ fontFamily: 'Poppins_400Regular' }}>{roleOption}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
               <Pressable
                 onPress={handleCreateUser}
@@ -195,7 +284,7 @@ export default function PageUser() {
                   alignItems: 'center'
                 }}
               >
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>Add</Text>
+                <Text style={{ fontFamily: 'Poppins_700Bold', color: 'white', fontWeight: 'bold' }}>Add</Text>
               </Pressable>
               <Pressable
                 onPress={() => setShowModal(false)}
@@ -207,7 +296,7 @@ export default function PageUser() {
                   alignItems: 'center'
                 }}
               >
-                <Text style={{ fontWeight: 'bold' }}>Cancel</Text>
+                <Text style={{ fontFamily: 'Poppins_700Bold', fontWeight: 'bold' }}>Cancel</Text>
               </Pressable>
             </View>
           </View>

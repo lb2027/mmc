@@ -6,6 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { useFonts, Poppins_400Regular, Poppins_700Bold } from '@expo-google-fonts/poppins';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -19,6 +20,11 @@ export default function PageB() {
   });
 
   const router = useRouter();
+
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_700Bold,
+  });
 
   useEffect(() => {
     fetchProducts();
@@ -99,7 +105,7 @@ export default function PageB() {
         params: { produk: JSON.stringify(item) },
       })}
       style={{
-        backgroundColor: '#f0f0f0',
+        backgroundColor: '#ffe0b2',
         borderRadius: 10,
         padding: 10,
         margin: 5,
@@ -123,13 +129,17 @@ export default function PageB() {
       </View>
     )}
 
-      <Text style={{ fontWeight: 'bold' }}>{item.nama}</Text>
-      <Text>Stok: {item.stok}</Text>
+      <Text style={{ fontFamily: 'Poppins_700Bold' }}>{item.nama}</Text>
+      <Text style={{ fontFamily: 'Poppins_400Regular' }}>Stok: {item.stok}</Text>
     </TouchableOpacity>
   );
 
+  if (!fontsLoaded) {
+    return <ActivityIndicator size="large" color="#F3AA36" style={{ marginTop: 50 }} />;
+  }
+
   return (
-    <View style={{ flex: 1, paddingHorizontal: 10 }}>
+    <View style={{ flex: 1, width: screenWidth, paddingHorizontal: 10 }}>
       {/* Header */}
       <View style={{
         flexDirection: 'row',
@@ -142,7 +152,13 @@ export default function PageB() {
         borderBottomLeftRadius: 15,
         borderBottomRightRadius: 15,
       }}>
-        <Text style={{ fontSize: 24, color: 'white', fontWeight: 'bold' }}>Manage Products</Text>
+        <Text style={{
+          fontSize: 24,
+          color: 'white',
+          fontFamily: 'Poppins_700Bold'
+        }}>
+          Products
+        </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <TouchableOpacity
             onPress={() => setShowModal(true)}
@@ -152,7 +168,7 @@ export default function PageB() {
               paddingHorizontal: 12,
               borderRadius: 8
             }}>
-            <Text style={{ color: '#F3AA36', fontWeight: 'bold' }}>+ Add</Text>
+            <Text style={{ color: '#F3AA36', fontFamily: 'Poppins_700Bold' }}>+ Add</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={logout}>
             <Ionicons name="log-out-outline" size={24} color="white" />
@@ -182,7 +198,7 @@ export default function PageB() {
             width: '85%', backgroundColor: 'white',
             borderRadius: 16, padding: 20, elevation: 5
           }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}>
+            <Text style={{ fontSize: 18, fontFamily: 'Poppins_700Bold', marginBottom: 15 }}>
               Add a new Product
             </Text>
             {['Product Name', 'Stock', 'Price', 'Purchase price', 'Image UR', 'Supplier'].map((placeholder, i) => (
@@ -194,7 +210,8 @@ export default function PageB() {
                 onChangeText={(text) => setNewProduct({ ...newProduct, [Object.keys(newProduct)[i]]: text })}
                 style={{
                   borderWidth: 1, borderColor: '#ccc',
-                  borderRadius: 8, padding: 10, marginBottom: 10
+                  borderRadius: 8, padding: 10, marginBottom: 10,
+                  fontFamily: 'Poppins_400Regular'
                 }}
               />
             ))}
@@ -210,7 +227,7 @@ export default function PageB() {
                   alignItems: 'center'
                 }}
               >
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>Add</Text>
+                <Text style={{ color: 'white', fontFamily: 'Poppins_700Bold' }}>Add</Text>
               </Pressable>
               <Pressable
                 onPress={() => setShowModal(false)}
@@ -222,7 +239,7 @@ export default function PageB() {
                   alignItems: 'center'
                 }}
               >
-                <Text style={{ fontWeight: 'bold' }}>Cancel</Text>
+                <Text style={{ fontFamily: 'Poppins_700Bold' }}>Cancel</Text>
               </Pressable>
             </View>
           </View>

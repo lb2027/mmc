@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { useFonts, Poppins_400Regular, Poppins_700Bold } from '@expo-google-fonts/poppins';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -22,6 +23,11 @@ export default function PageC() {
   const router = useRouter();
   const [transaksi, setTransaksi] = useState<Transaksi[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_700Bold,
+  });
 
   useEffect(() => {
     fetchTransaksi();
@@ -74,19 +80,23 @@ export default function PageC() {
       flex: 1,
       maxWidth: (screenWidth / 2) - 15,
     }}>
-      <Text style={{ fontWeight: 'bold' }}>ID: {item.transaksi_id}</Text>
-      <Text>Produk: {item.nama_produk}</Text>
-      <Text>Harga: Rp{item.harga.toLocaleString('id-ID')}</Text>
-      <Text>Jumlah: {item.jumlah_terjual}</Text>
-      <Text>Total: Rp{item.total_harga.toLocaleString('id-ID')}</Text>
-      <Text style={{ fontSize: 12, color: '#666' }}>
+      <Text style={{ fontFamily: 'Poppins_700Bold' }}>ID: {item.transaksi_id}</Text>
+      <Text style={{ fontFamily: 'Poppins_400Regular' }}>Produk: {item.nama_produk}</Text>
+      <Text style={{ fontFamily: 'Poppins_400Regular' }}>Harga: Rp{item.harga.toLocaleString('id-ID')}</Text>
+      <Text style={{ fontFamily: 'Poppins_400Regular' }}>Jumlah: {item.jumlah_terjual}</Text>
+      <Text style={{ fontFamily: 'Poppins_700Bold' }}>Total: Rp{item.total_harga.toLocaleString('id-ID')}</Text>
+      <Text style={{ fontFamily: 'Poppins_400Regular', fontSize: 12, color: '#666' }}>
         {new Date(item.tanggal).toLocaleString('id-ID')}
       </Text>
     </View>
   );
 
+  if (!fontsLoaded) {
+    return <ActivityIndicator size="large" color="#F3AA36" style={{ marginTop: 50 }} />;
+  }
+
   return (
-    <View style={{ flex: 1, paddingHorizontal: 10 }}>
+    <View style={{ flex: 1,width: screenWidth, paddingHorizontal: 10 }}>
       {/* Header */}
       <View style={{
         flexDirection: 'row',
@@ -99,7 +109,13 @@ export default function PageC() {
         borderBottomLeftRadius: 15,
         borderBottomRightRadius: 15,
       }}>
-        <Text style={{ fontSize: 24, color: 'white', fontWeight: 'bold' }}>Transaction</Text>
+        <Text style={{
+          fontSize: 24,
+          color: 'white',
+          fontFamily: 'Poppins_700Bold'
+        }}>
+          Transaction
+        </Text>
         <TouchableOpacity onPress={logout}>
           <Ionicons name="log-out-outline" size={24} color="white" />
         </TouchableOpacity>
