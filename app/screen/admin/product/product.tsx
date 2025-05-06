@@ -1,26 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, Image,
-  ActivityIndicator, Dimensions, Alert, Modal, TextInput, Button
+  ActivityIndicator, Dimensions, Alert, Modal, TextInput, Pressable
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';  // For FAB icon
+import { Ionicons } from '@expo/vector-icons';
 
 const screenWidth = Dimensions.get('window').width;
 
 export default function PageB() {
+  const [imageError, setImageError] = useState(false);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showModal, setShowModal] = useState(false);  // Modal for creating new product
+  const [showModal, setShowModal] = useState(false);
   const [newProduct, setNewProduct] = useState({
-    nama: '',
-    stok: '',
-    harga: '',
-    harga_beli: '',
-    foto: '',
-    supplier: ''
+    nama: '', stok: '', harga: '', harga_beli: '', foto: '', supplier: ''
   });
+
   const router = useRouter();
 
   useEffect(() => {
@@ -43,33 +40,20 @@ export default function PageB() {
     }
   };
 
-  const renderCard = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      onPress={() => router.push({ pathname: 'screen/admin/product/detail', params: { produk: JSON.stringify(item) } })}
-      style={{
-        backgroundColor: '#f0f0f0',
-        borderRadius: 10,
-        padding: 10,
-        margin: 5,
-        flex: 1,
-        maxWidth: (screenWidth / 2) - 15,
-      }}
-    >
-      {item.foto ? (
-        <Image
-          source={{ uri: `http://103.16.116.58:5050/images/${item.foto}` }}
-          style={{ height: 100, borderRadius: 8, marginBottom: 5 }}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={{ height: 100, backgroundColor: '#ccc', justifyContent: 'center', alignItems: 'center', marginBottom: 5 }}>
-          <Text>No Image</Text>
-        </View>
-      )}
-      <Text style={{ fontWeight: 'bold' }}>{item.nama}</Text>
-      <Text>Stok: {item.stok}</Text>
-    </TouchableOpacity>
-  );
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('token');
+    router.replace('/'); // Adjust this to your login route
+  };
+
+  const logout = async () => {
+    try {
+      await AsyncStorage.multiRemove(['token', 'username', 'role']);
+      Alert.alert('Logged Out', 'You have been logged out.');
+      router.replace('/');
+    } catch (error) {
+      Alert.alert('Error', 'Logout failed.');
+    }
+  };
 
   const handleCreateProduct = async () => {
     try {
@@ -89,113 +73,158 @@ export default function PageB() {
           supplier: newProduct.supplier,
         }),
       });
-  
-      // Check if the response body is empty
+
       if (response.ok) {
-        const data = await response.text(); // Get the response body as text first
-  
-        if (data) {
-          try {
-            const jsonData = JSON.parse(data);  // Try parsing the data as JSON
-            Alert.alert('Sukses', 'Produk berhasil ditambahkan!');
-            setShowModal(false);  // Close the modal
-            fetchProducts();  // Refresh the product list
-          } catch (error) {
-            console.error('Response is not valid JSON:', error);
-            Alert.alert('Gagal', 'Terjadi kesalahan saat menambahkan produk.');
-          }
+        const data = await response.text();
+        if (!data || JSON.parse(data)) {
+          Alert.alert('Success', 'Product successfully added!!');
+          setShowModal(false);
+          fetchProducts();
         } else {
-          // If the response body is empty, just consider it as success
-          Alert.alert('Sukses', 'Produk berhasil ditambahkan!');
-          setShowModal(false);  // Close the modal
-          fetchProducts();  // Refresh the product list
+          Alert.alert('Failed', 'There was an error while adding the product.');
         }
       } else {
-        Alert.alert('Gagal', 'Terjadi kesalahan saat menambahkan produk.');
+        Alert.alert('Failed', 'There was an error while adding the product.');
       }
     } catch (error) {
       console.error('Create error:', error);
-      Alert.alert('Gagal', 'Terjadi kesalahan saat menambahkan produk.');
+      Alert.alert('Failed', 'There was an error while adding the product.');
     }
   };
-  
+
+  const renderCard = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      onPress={() => router.push({
+        pathname: 'screen/admin/product/detail',
+        params: { produk: JSON.stringify(item) },
+      })}
+      style={{
+        backgroundColor: '#f0f0f0',
+        borderRadius: 10,
+        padding: 10,
+        margin: 5,
+        flex: 1,
+        maxWidth: (screenWidth / 2) - 15,
+      }}
+    >
+    {item.foto ? (
+      <Image
+        source={{ uri: `http://103.16.116.58:5050/images/${item.foto}` }}
+        style={{ height: 100, borderRadius: 8, marginBottom: 5 }}
+        resizeMode="cover"
+        onError={() => setImageError(true)}  // Handle image error
+      />
+    ) : (
+      <View style={{
+        height: 100, backgroundColor: '#ccc',
+        justifyContent: 'center', alignItems: 'center', marginBottom: 5
+      }}>
+        <Text>No Image</Text>
+      </View>
+    )}
+
+      <Text style={{ fontWeight: 'bold' }}>{item.nama}</Text>
+      <Text>Stok: {item.stok}</Text>
+    </TouchableOpacity>
+  );
 
   return (
-    <View style={{ width: screenWidth, padding: 10 }}>
-      <Text style={{ fontSize: 24, textAlign: 'center', marginBottom: 10 }}>Produk</Text>
+    <View style={{ flex: 1, paddingHorizontal: 10 }}>
+      {/* Header */}
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingTop: 50,
+        paddingBottom: 10,
+        backgroundColor: '#F3AA36',
+        paddingHorizontal: 15,
+        borderBottomLeftRadius: 15,
+        borderBottomRightRadius: 15,
+      }}>
+        <Text style={{ fontSize: 24, color: 'white', fontWeight: 'bold' }}>Manage Products</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <TouchableOpacity
+            onPress={() => setShowModal(true)}
+            style={{
+              backgroundColor: 'white',
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 8
+            }}>
+            <Text style={{ color: '#F3AA36', fontWeight: 'bold' }}>+ Add</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={logout}>
+            <Ionicons name="log-out-outline" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {loading ? (
-        <ActivityIndicator size="large" color="blue" />
+        <ActivityIndicator size="large" color="#F3AA36" style={{ marginTop: 20 }} />
       ) : (
         <FlatList
           data={products}
           numColumns={2}
           keyExtractor={(item, index) => item.produk_id?.toString() ?? index.toString()}
           renderItem={renderCard}
+          contentContainerStyle={{ paddingTop: 10, paddingBottom: 60 }}
         />
       )}
 
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        onPress={() => setShowModal(true)}
-        style={{
-          position: 'absolute',
-          bottom: 20,
-          right: 20,
-          backgroundColor: '#007AFF',
-          padding: 15,
-          borderRadius: 50,
-          elevation: 8,
-        }}
-      >
-        <Ionicons name="add" size={30} color="white" />
-      </TouchableOpacity>
-
-      {/* Modal for Creating Product */}
-      <Modal visible={showModal} animationType="slide" transparent={true}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View style={{ width: 300, backgroundColor: 'white', padding: 20, borderRadius: 10 }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Tambah Produk Baru</Text>
-            <TextInput
-              placeholder="Nama Produk"
-              value={newProduct.nama}
-              onChangeText={(text) => setNewProduct({ ...newProduct, nama: text })}
-              style={{ borderBottomWidth: 1, marginBottom: 10, padding: 5 }}
-            />
-            <TextInput
-              placeholder="Stok"
-              keyboardType="numeric"
-              value={newProduct.stok}
-              onChangeText={(text) => setNewProduct({ ...newProduct, stok: text })}
-              style={{ borderBottomWidth: 1, marginBottom: 10, padding: 5 }}
-            />
-            <TextInput
-              placeholder="Harga"
-              keyboardType="numeric"
-              value={newProduct.harga}
-              onChangeText={(text) => setNewProduct({ ...newProduct, harga: text })}
-              style={{ borderBottomWidth: 1, marginBottom: 10, padding: 5 }}
-            />
-            <TextInput
-              placeholder="Harga Beli"
-              keyboardType="numeric"
-              value={newProduct.harga_beli}
-              onChangeText={(text) => setNewProduct({ ...newProduct, harga_beli: text })}
-              style={{ borderBottomWidth: 1, marginBottom: 10, padding: 5 }}
-            />
-            <TextInput
-              placeholder="Foto URL"
-              value={newProduct.foto}
-              onChangeText={(text) => setNewProduct({ ...newProduct, foto: text })}
-              style={{ borderBottomWidth: 1, marginBottom: 10, padding: 5 }}
-            />
-            <TextInput
-              placeholder="Supplier"
-              value={newProduct.supplier}
-              onChangeText={(text) => setNewProduct({ ...newProduct, supplier: text })}
-              style={{ borderBottomWidth: 1, marginBottom: 20, padding: 5 }}
-            />
-            <Button title="Tambah Produk" onPress={handleCreateProduct} />
-            <Button title="Batal" onPress={() => setShowModal(false)} color="gray" />
+      {/* Modal */}
+      <Modal visible={showModal} animationType="fade" transparent>
+        <View style={{
+          flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'center', alignItems: 'center'
+        }}>
+          <View style={{
+            width: '85%', backgroundColor: 'white',
+            borderRadius: 16, padding: 20, elevation: 5
+          }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}>
+              Add a new Product
+            </Text>
+            {['Product Name', 'Stock', 'Price', 'Purchase price', 'Image UR', 'Supplier'].map((placeholder, i) => (
+              <TextInput
+                key={i}
+                placeholder={placeholder}
+                keyboardType={i >= 1 && i <= 3 ? 'numeric' : 'default'}
+                value={(Object.values(newProduct) as string[])[i]}
+                onChangeText={(text) => setNewProduct({ ...newProduct, [Object.keys(newProduct)[i]]: text })}
+                style={{
+                  borderWidth: 1, borderColor: '#ccc',
+                  borderRadius: 8, padding: 10, marginBottom: 10
+                }}
+              />
+            ))}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+              <Pressable
+                onPress={handleCreateProduct}
+                style={{
+                  backgroundColor: '#F3AA36',
+                  padding: 10,
+                  borderRadius: 8,
+                  flex: 1,
+                  marginRight: 10,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>Add</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setShowModal(false)}
+                style={{
+                  backgroundColor: '#ccc',
+                  padding: 10,
+                  borderRadius: 8,
+                  flex: 1,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ fontWeight: 'bold' }}>Cancel</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>

@@ -2,11 +2,17 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFonts, Poppins_400Regular, Poppins_700Bold } from '@expo-google-fonts/poppins';
 
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_700Bold,
+  });
 
   const login = async () => {
     try {
@@ -54,6 +60,10 @@ export default function LoginPage() {
     }
   };
 
+  if (!fontsLoaded) {
+    return null; // Or a loading spinner
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>BINTANG{"\n"}JAWA</Text>
@@ -96,7 +106,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontFamily: 'Poppins_700Bold',
     color: '#000000',
     textAlign: 'center',
     marginBottom: 40,
@@ -118,6 +128,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 15,
     fontSize: 16,
+    fontFamily: 'Poppins_400Regular',
   },
   button: {
     backgroundColor: '#363636',
@@ -128,13 +139,14 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
     fontSize: 16,
+    fontFamily: 'Poppins_700Bold',
   },
   registerText: {
     color: '#000',
     textAlign: 'center',
     marginTop: 15,
     textDecorationLine: 'underline',
+    fontFamily: 'Poppins_400Regular',
   },
 });

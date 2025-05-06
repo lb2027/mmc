@@ -1,11 +1,17 @@
 import { useState } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFonts, Poppins_400Regular, Poppins_700Bold } from '@expo-google-fonts/poppins';
 
 export default function RegisterPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_700Bold,
+  });
 
   const handleRegister = async () => {
     try {
@@ -27,6 +33,8 @@ export default function RegisterPage() {
       Alert.alert('Error', 'Something went wrong');
     }
   };
+
+  if (!fontsLoaded) return null;
 
   return (
     <View style={styles.container}>
@@ -71,7 +79,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontFamily: 'Poppins_700Bold',
     color: '#000000',
     textAlign: 'center',
     marginBottom: 40,
@@ -93,6 +101,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 15,
     fontSize: 16,
+    fontFamily: 'Poppins_400Regular',
   },
   button: {
     backgroundColor: '#363636',
@@ -103,13 +112,14 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
     fontSize: 16,
+    fontFamily: 'Poppins_700Bold',
   },
   registerText: {
     color: '#000',
     textAlign: 'center',
     marginTop: 15,
     textDecorationLine: 'underline',
+    fontFamily: 'Poppins_400Regular',
   },
 });

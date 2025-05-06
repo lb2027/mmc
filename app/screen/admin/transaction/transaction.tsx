@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Button, Alert, FlatList, ActivityIndicator, StyleSheet, Dimensions } from 'react-native';
-import { useRouter } from 'expo-router';
+import {
+  View, Text, FlatList, ActivityIndicator, Dimensions,
+  Alert, TouchableOpacity
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -19,6 +23,10 @@ export default function PageC() {
   const [transaksi, setTransaksi] = useState<Transaksi[]>([]);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    fetchTransaksi();
+  }, []);
+
   const fetchTransaksi = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -29,22 +37,18 @@ export default function PageC() {
       }
 
       const response = await fetch('http://103.16.116.58:5050/selecttransaksi', {
-        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           token: token,
         },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch transaksi');
-      }
+      if (!response.ok) throw new Error('Failed to fetch transaction data.');
 
       const data = await response.json();
-      console.log('Fetched transaksi:', data);
-      setTransaksi(data);
+      setTransaksi(Array.isArray(data) ? data : []);
     } catch (error) {
-      Alert.alert('Error', 'Failed to fetch transaksi.');
+      Alert.alert('Error', 'Failed to fetch transaction.');
       console.error(error);
     } finally {
       setLoading(false);
@@ -61,62 +65,57 @@ export default function PageC() {
     }
   };
 
-  useEffect(() => {
-    fetchTransaksi();
-  }, []);
+  const renderCard = ({ item }: { item: Transaksi }) => (
+    <View style={{
+      backgroundColor: '#f0f0f0',
+      borderRadius: 10,
+      padding: 10,
+      margin: 5,
+      flex: 1,
+      maxWidth: (screenWidth / 2) - 15,
+    }}>
+      <Text style={{ fontWeight: 'bold' }}>ID: {item.transaksi_id}</Text>
+      <Text>Produk: {item.nama_produk}</Text>
+      <Text>Harga: Rp{item.harga.toLocaleString('id-ID')}</Text>
+      <Text>Jumlah: {item.jumlah_terjual}</Text>
+      <Text>Total: Rp{item.total_harga.toLocaleString('id-ID')}</Text>
+      <Text style={{ fontSize: 12, color: '#666' }}>
+        {new Date(item.tanggal).toLocaleString('id-ID')}
+      </Text>
+    </View>
+  );
 
   return (
-    <View style={[styles.container, { width: screenWidth }]}>
-      <Text style={styles.header}>Transaksi</Text>
+    <View style={{ flex: 1, paddingHorizontal: 10 }}>
+      {/* Header */}
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingTop: 50,
+        paddingBottom: 10,
+        backgroundColor: '#F3AA36',
+        paddingHorizontal: 15,
+        borderBottomLeftRadius: 15,
+        borderBottomRightRadius: 15,
+      }}>
+        <Text style={{ fontSize: 24, color: 'white', fontWeight: 'bold' }}>Transaction</Text>
+        <TouchableOpacity onPress={logout}>
+          <Ionicons name="log-out-outline" size={24} color="white" />
+        </TouchableOpacity>
+      </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="#F3AA36" style={{ marginTop: 20 }} />
       ) : (
         <FlatList
           data={transaksi}
+          numColumns={2}
           keyExtractor={(item, index) => item?.transaksi_id?.toString() ?? `transaksi-${index}`}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text>ID: {item.transaksi_id}</Text>
-              <Text>Produk: {item.nama_produk}</Text>
-              <Text>Harga: Rp{item.harga.toLocaleString('id-ID')}</Text>
-              <Text>Jumlah Terjual: {item.jumlah_terjual}</Text>
-              <Text>Total: Rp{item.total_harga.toLocaleString('id-ID')}</Text>
-              <Text>Tanggal: {new Date(item.tanggal).toLocaleString('id-ID')}</Text>
-            </View>
-          )}          
+          renderItem={renderCard}
+          contentContainerStyle={{ paddingTop: 10, paddingBottom: 60 }}
         />
       )}
-
-      <View style={styles.logoutButton}>
-        <Button title="Logout" onPress={logout} color="#d9534f" />
-      </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  card: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 10,
-    backgroundColor: '#f9f9f9',
-  },
-  logoutButton: {
-    marginTop: 16,
-  },
-});

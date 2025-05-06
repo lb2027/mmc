@@ -3,12 +3,20 @@ import { useEffect, useRef } from 'react';
 import { Animated, Text, View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFonts, Poppins_400Regular, Poppins_700Bold } from '@expo-google-fonts/poppins';
 
 export default function SplashScreen() {
   const router = useRouter();
   const translateX = useRef(new Animated.Value(-300)).current;
 
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_700Bold,
+  });
+
   useEffect(() => {
+    if (!fontsLoaded) return;
+
     // Animate text running from left to right
     Animated.timing(translateX, {
       toValue: 300,
@@ -35,12 +43,16 @@ export default function SplashScreen() {
     }, 5000);
 
     return () => clearTimeout(timeout);
-  }, []);
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null; // or a loading indicator
+  }
 
   return (
     <View style={styles.container}>
       <Animated.Text style={[styles.text, { transform: [{ translateX }] }]}>
-        Bintang Jaya
+        Bintang Jawa
       </Animated.Text>
     </View>
   );
@@ -55,7 +67,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontFamily: 'Poppins_700Bold',
     color: '#FFFFFF',
   },
 });
