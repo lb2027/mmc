@@ -73,7 +73,7 @@ export default function PageC() {
 
   const renderCard = ({ item }: { item: Transaksi }) => (
     <View style={{
-      backgroundColor: '#f0f0f0',
+      backgroundColor: '#ffffff',
       borderRadius: 10,
       padding: 10,
       margin: 5,

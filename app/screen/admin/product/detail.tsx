@@ -1,27 +1,29 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, Modal,
-  TextInput, Alert, TouchableOpacity, SafeAreaView, Image,
+  View, Text, Modal, TextInput, Alert, StyleSheet,
+  TouchableOpacity, Dimensions, SafeAreaView, ScrollView, Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AntDesign } from '@expo/vector-icons';
+
+const { width } = Dimensions.get('window');
 
 export default function ProductDetail() {
   const { produk } = useLocalSearchParams();
-  const data = JSON.parse(produk as string);
   const router = useRouter();
+  const data = typeof produk === 'string' ? JSON.parse(produk) : produk;
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [form, setForm] = useState({
+    nama: data.nama,
+    stok: String(data.stok),
+    harga: String(data.harga),
+    hargaBeli: String(data.harga_beli),
+    foto: data.foto,
+    supplier: data.supplier,
+  });
 
-  const [nama, setNama] = useState(data.nama);
-  const [stok, setStok] = useState(String(data.stok));
-  const [harga, setHarga] = useState(String(data.harga));
-  const [hargaBeli, setHargaBeli] = useState(String(data.harga_beli));
-  const [foto, setFoto] = useState(data.foto);
-  const [supplier, setSupplier] = useState(data.supplier);
-
-  const updateProduk = async () => {
+  const handleUpdate = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
       const response = await fetch('http://103.16.116.58:5050/updateproduk', {
@@ -32,12 +34,12 @@ export default function ProductDetail() {
         },
         body: JSON.stringify({
           produk_id: data.produk_id,
-          nama,
-          stok: parseInt(stok),
-          harga: parseFloat(harga),
-          harga_beli: parseFloat(hargaBeli),
-          foto,
-          supplier,
+          nama: form.nama,
+          stok: parseInt(form.stok),
+          harga: parseFloat(form.harga),
+          harga_beli: parseFloat(form.hargaBeli),
+          foto: form.foto,
+          supplier: form.supplier,
         }),
       });
 
@@ -54,11 +56,12 @@ export default function ProductDetail() {
     }
   };
 
-  const deleteProduk = async () => {
+  const handleDelete = async () => {
     Alert.alert('Konfirmasi', 'Hapus produk ini?', [
       { text: 'Batal', style: 'cancel' },
       {
         text: 'Hapus',
+        style: 'destructive',
         onPress: async () => {
           try {
             const token = await AsyncStorage.getItem('token');
@@ -87,65 +90,69 @@ export default function ProductDetail() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f4f6f9' }}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Detail Produk</Text>
-
+      <View style={styles.card}>
+        <Text style={styles.header}>Detail Produk</Text>
         {data.foto ? (
-          <Image
-            source={{ uri: data.foto }}
-            style={styles.image}
-            resizeMode="contain"
-          />
+          <Image source={{ uri: data.foto }} style={styles.image} resizeMode="contain" />
         ) : null}
+        <View style={styles.grid}>
+          <View style={styles.cell}>
+            <Text style={styles.label}>ID Produk</Text>
+            <Text style={styles.value}>{data.produk_id}</Text>
+          </View>
+          <View style={styles.cell}>
+            <Text style={styles.label}>Nama</Text>
+            <Text style={styles.value}>{data.nama}</Text>
+          </View>
+          <View style={styles.cell}>
+            <Text style={styles.label}>Stok</Text>
+            <Text style={styles.value}>{data.stok}</Text>
+          </View>
+          <View style={styles.cell}>
+            <Text style={styles.label}>Harga Jual</Text>
+            <Text style={styles.value}>Rp{data.harga}</Text>
+          </View>
+          <View style={styles.cell}>
+            <Text style={styles.label}>Harga Beli</Text>
+            <Text style={styles.value}>Rp{data.harga_beli}</Text>
+          </View>
+          <View style={styles.cell}>
+            <Text style={styles.label}>Supplier</Text>
+            <Text style={styles.value}>{data.supplier}</Text>
+          </View>
+        </View>
+      </View>
 
-        <View style={styles.infoBox}>
-          {[
-            ['ID Produk', data.produk_id],
-            ['Nama', data.nama],
-            ['Stok', data.stok],
-            ['Harga Jual', `Rp${data.harga}`],
-            ['Harga Beli', `Rp${data.harga_beli}`],
-            ['Foto', data.foto],
-            ['Supplier', data.supplier],
-          ].map(([label, value]) => (
-            <View style={styles.row} key={label}>
-              <Text style={styles.label}>{label}:</Text>
-              <Text style={styles.value}>{value}</Text>
-            </View>
-          ))}
+
+        <View style={styles.bottomButtons}>
+          <TouchableOpacity style={styles.editBtn} onPress={() => setModalVisible(true)}>
+            <Text style={styles.btnText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+            <Text style={styles.btnText}>Hapus</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Floating Buttons */}
-      <View style={styles.fabContainer}>
-        <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
-          <AntDesign name="edit" size={24} color="white" />
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.fab, { backgroundColor: '#e74c3c' }]} onPress={deleteProduk}>
-          <AntDesign name="delete" size={24} color="white" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Update Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Update Produk</Text>
+            <TextInput style={styles.input} placeholder="Nama" value={form.nama} onChangeText={(val) => setForm({ ...form, nama: val })} />
+            <TextInput style={styles.input} placeholder="Stok" value={form.stok} keyboardType="numeric" onChangeText={(val) => setForm({ ...form, stok: val })} />
+            <TextInput style={styles.input} placeholder="Harga Jual" value={form.harga} keyboardType="numeric" onChangeText={(val) => setForm({ ...form, harga: val })} />
+            <TextInput style={styles.input} placeholder="Harga Beli" value={form.hargaBeli} keyboardType="numeric" onChangeText={(val) => setForm({ ...form, hargaBeli: val })} />
+            <TextInput style={styles.input} placeholder="Foto (URL)" value={form.foto} onChangeText={(val) => setForm({ ...form, foto: val })} />
+            <TextInput style={styles.input} placeholder="Supplier" value={form.supplier} onChangeText={(val) => setForm({ ...form, supplier: val })} />
 
-            <TextInput style={styles.input} placeholder="Nama" value={nama} onChangeText={setNama} />
-            <TextInput style={styles.input} placeholder="Stok" value={stok} onChangeText={setStok} keyboardType="numeric" />
-            <TextInput style={styles.input} placeholder="Harga Jual" value={harga} onChangeText={setHarga} keyboardType="numeric" />
-            <TextInput style={styles.input} placeholder="Harga Beli" value={hargaBeli} onChangeText={setHargaBeli} keyboardType="numeric" />
-            <TextInput style={styles.input} placeholder="Foto (link)" value={foto} onChangeText={setFoto} />
-            <TextInput style={styles.input} placeholder="Supplier" value={supplier} onChangeText={setSupplier} />
-
-            <View style={styles.modalButtonRow}>
-              <TouchableOpacity style={styles.modalButtonCancel} onPress={() => setModalVisible(false)}>
-                <Text style={styles.modalButtonTextCancel}>Batal</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
+                <Text style={styles.btnText}>Batal</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButton} onPress={updateProduk}>
-                <Text style={styles.modalButtonText}>Update</Text>
+              <TouchableOpacity style={styles.saveBtn} onPress={handleUpdate}>
+                <Text style={styles.btnText}>Update</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -158,48 +165,63 @@ export default function ProductDetail() {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
+    paddingBottom: 100,
   },
-  title: {
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  header: {
     fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 15,
+    fontWeight: '600',
+    marginBottom: 20,
+    color: '#2c3e50',
+    textAlign: 'center',
   },
   image: {
     width: '100%',
     height: 200,
-    borderRadius: 10,
+    marginBottom: 20,
+    borderRadius: 12,
+  },
+  infoRow: {
     marginBottom: 15,
   },
-  infoBox: {
-    backgroundColor: '#f9f9f9',
-    padding: 15,
-    borderRadius: 10,
-  },
-  row: {
-    marginBottom: 10,
-  },
   label: {
-    fontWeight: 'bold',
     fontSize: 14,
+    color: '#7f8c8d',
+    marginBottom: 5,
   },
   value: {
     fontSize: 16,
-    color: '#333',
+    color: '#34495e',
+    fontWeight: '500',
   },
-  fabContainer: {
+  bottomButtons: {
     position: 'absolute',
+    bottom: 20,
+    left: 20,
     right: 20,
-    bottom: 30,
-    flexDirection: 'column',
-    gap: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
   },
-  fab: {
-    backgroundColor: '#3498db',
-    borderRadius: 30,
-    padding: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 5,
+  editBtn: {
+    backgroundColor: '#F3AA36',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 10,
+  },
+  deleteBtn: {
+    backgroundColor: '#F3AA36',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 10,
   },
   modalOverlay: {
     flex: 1,
@@ -209,43 +231,59 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 16,
     padding: 20,
+    shadowColor: '#000',
+    elevation: 8,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
+    fontWeight: '600',
+    marginBottom: 20,
     textAlign: 'center',
+    color: '#2c3e50',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 10,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    fontSize: 16,
+    backgroundColor: '#f9f9f9',
   },
-  modalButtonRow: {
+  modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 10,
   },
-  modalButton: {
-    backgroundColor: '#3498db',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+  cancelBtn: {
+    backgroundColor: '#f0f0f0',
+    padding: 12,
+    borderRadius: 10,
+    width: '48%',
+    alignItems: 'center',
   },
-  modalButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
+  saveBtn: {
+    backgroundColor: '#F3AA36',
+    padding: 12,
+    borderRadius: 10,
+    width: '48%',
+    alignItems: 'center',
   },
-  modalButtonCancel: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+  btnText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
   },
-  modalButtonTextCancel: {
-    color: 'gray',
-    fontWeight: 'bold',
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
+  cell: {
+    width: '48%',
+    marginBottom: 15,
+  },
+  
 });

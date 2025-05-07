@@ -97,7 +97,7 @@ export default function PageUser() {
 
   const UserCard = ({ item }: { item: any }) => {
     const [showPassword, setShowPassword] = useState(false);
-    const cardColor = item.role === 'admin' ? '#ffe0b2' : '#f0f0f0';
+    const cardColor = item.role === 'admin' ? '#ffe0b2' : '#ffffff';
 
     return (
       <TouchableOpacity

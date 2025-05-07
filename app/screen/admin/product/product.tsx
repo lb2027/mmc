@@ -109,7 +109,8 @@ export default function PageB() {
         params: { produk: JSON.stringify(item) },
       })}
       style={{
-        backgroundColor: '#ffe0b2',
+        //backgroundColor: '#ffe0b2',
+        backgroundColor: '#ffffff',
         borderRadius: 10,
         padding: 10,
         margin: 5,
@@ -205,7 +206,7 @@ export default function PageB() {
             <Text style={{ fontSize: 18, fontFamily: 'Poppins_700Bold', marginBottom: 15 }}>
               Add a new Product
             </Text>
-            {['Product Name', 'Stock', 'Price', 'Purchase price', 'Image UR', 'Supplier'].map((placeholder, i) => (
+            {['Product Name', 'Stock', 'Price', 'Purchase Price', 'Image URL', 'Supplier'].map((placeholder, i) => (
               <TextInput
                 key={i}
                 placeholder={placeholder}
@@ -243,7 +244,7 @@ export default function PageB() {
                   alignItems: 'center'
                 }}
               >
-                <Text style={{ fontFamily: 'Poppins_700Bold' }}>Cancel</Text>
+                <Text style={{ fontFamily: 'Poppins_700Bold', fontWeight: 'bold' }}>Cancel</Text>
               </Pressable>
             </View>
           </View>
