@@ -1,8 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, Button,
-  Modal, TextInput, Alert, TouchableOpacity
+  View, Text, ScrollView, StyleSheet, Modal,
+  TextInput, Alert, TouchableOpacity, SafeAreaView, Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AntDesign } from '@expo/vector-icons';
@@ -12,7 +12,6 @@ export default function ProductDetail() {
   const data = JSON.parse(produk as string);
   const router = useRouter();
 
-  const [showButtons, setShowButtons] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
 
   const [nama, setNama] = useState(data.nama);
@@ -21,11 +20,6 @@ export default function ProductDetail() {
   const [hargaBeli, setHargaBeli] = useState(String(data.harga_beli));
   const [foto, setFoto] = useState(data.foto);
   const [supplier, setSupplier] = useState(data.supplier);
-
-  const toggleModal = () => setModalVisible(!modalVisible);
-  const toggleButtons = () => setShowButtons(!showButtons);
-
-  const goBack = () => router.back();
 
   const updateProduk = async () => {
     try {
@@ -46,15 +40,12 @@ export default function ProductDetail() {
           supplier,
         }),
       });
-  
-      // Check if the response is successful (status 200 or 204)
-      if (response.status === 200 || response.status === 204) {
+
+      if (response.ok) {
         Alert.alert('Sukses', 'Produk berhasil diupdate.');
-        toggleModal();  // Close the update modal
-        goBack();  // Go back to the previous screen
+        setModalVisible(false);
+        router.back();
       } else {
-        // Log any non-200 responses
-        console.error('Update failed with status:', response.status);
         Alert.alert('Gagal', 'Terjadi kesalahan saat mengupdate produk.');
       }
     } catch (error) {
@@ -62,87 +53,105 @@ export default function ProductDetail() {
       Alert.alert('Error', 'Gagal mengirim permintaan.');
     }
   };
-  
-  
-  
 
   const deleteProduk = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://103.16.116.58:5050/deleteproduk', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          token: token ?? '',
+    Alert.alert('Konfirmasi', 'Hapus produk ini?', [
+      { text: 'Batal', style: 'cancel' },
+      {
+        text: 'Hapus',
+        onPress: async () => {
+          try {
+            const token = await AsyncStorage.getItem('token');
+            const response = await fetch('http://103.16.116.58:5050/deleteproduk', {
+              method: 'DELETE',
+              headers: {
+                'Content-Type': 'application/json',
+                token: token ?? '',
+              },
+              body: JSON.stringify({ produk_id: data.produk_id }),
+            });
+
+            if (response.ok) {
+              Alert.alert('Sukses', 'Produk dihapus.');
+              router.back();
+            } else {
+              Alert.alert('Gagal', 'Gagal menghapus produk.');
+            }
+          } catch (error) {
+            console.error('Delete error:', error);
+            Alert.alert('Error', 'Gagal mengirim permintaan.');
+          }
         },
-        body: JSON.stringify({
-          produk_id: data.produk_id,
-        }),
-      });
-
-      const json = await response.json();
-      console.log('Delete response:', json);
-
-      if (response.ok) {
-        Alert.alert('Sukses', 'Produk berhasil dihapus.');
-        goBack();
-      } else {
-        Alert.alert('Gagal', json?.message ?? 'Gagal menghapus produk.');
-      }
-    } catch (error) {
-      console.error('Delete error:', error);
-      Alert.alert('Error', 'Gagal mengirim permintaan.');
-    }
+      },
+    ]);
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.backButton}>
-          <Button title="Kembali" onPress={goBack} />
-        </View>
-
         <Text style={styles.title}>Detail Produk</Text>
-        <Text>ID: {data.produk_id}</Text>
-        <Text>Nama: {data.nama}</Text>
-        <Text>Stok: {data.stok}</Text>
-        <Text>Harga Jual: {data.harga}</Text>
-        <Text>Harga Beli: {data.harga_beli}</Text>
-        <Text>Foto: {data.foto}</Text>
-        <Text>Supplier: {data.supplier}</Text>
+
+        {data.foto ? (
+          <Image
+            source={{ uri: data.foto }}
+            style={styles.image}
+            resizeMode="contain"
+          />
+        ) : null}
+
+        <View style={styles.infoBox}>
+          {[
+            ['ID Produk', data.produk_id],
+            ['Nama', data.nama],
+            ['Stok', data.stok],
+            ['Harga Jual', `Rp${data.harga}`],
+            ['Harga Beli', `Rp${data.harga_beli}`],
+            ['Foto', data.foto],
+            ['Supplier', data.supplier],
+          ].map(([label, value]) => (
+            <View style={styles.row} key={label}>
+              <Text style={styles.label}>{label}:</Text>
+              <Text style={styles.value}>{value}</Text>
+            </View>
+          ))}
+        </View>
       </ScrollView>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab} onPress={toggleButtons}>
-        <AntDesign name="plus" size={24} color="white" />
-      </TouchableOpacity>
+      {/* Floating Buttons */}
+      <View style={styles.fabContainer}>
+        <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
+          <AntDesign name="edit" size={24} color="white" />
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.fab, { backgroundColor: '#e74c3c' }]} onPress={deleteProduk}>
+          <AntDesign name="delete" size={24} color="white" />
+        </TouchableOpacity>
+      </View>
 
-      {showButtons && (
-        <View style={styles.fabActions}>
-          <Button title="Update" onPress={toggleModal} />
-          <View style={{ marginTop: 10 }} />
-          <Button title="Delete" color="red" onPress={deleteProduk} />
+      {/* Update Modal */}
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Update Produk</Text>
+
+            <TextInput style={styles.input} placeholder="Nama" value={nama} onChangeText={setNama} />
+            <TextInput style={styles.input} placeholder="Stok" value={stok} onChangeText={setStok} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder="Harga Jual" value={harga} onChangeText={setHarga} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder="Harga Beli" value={hargaBeli} onChangeText={setHargaBeli} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder="Foto (link)" value={foto} onChangeText={setFoto} />
+            <TextInput style={styles.input} placeholder="Supplier" value={supplier} onChangeText={setSupplier} />
+
+            <View style={styles.modalButtonRow}>
+              <TouchableOpacity style={styles.modalButtonCancel} onPress={() => setModalVisible(false)}>
+                <Text style={styles.modalButtonTextCancel}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalButton} onPress={updateProduk}>
+                <Text style={styles.modalButtonText}>Update</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      )}
-
-      {/* Modal untuk Update */}
-      <Modal visible={modalVisible} animationType="slide">
-        <ScrollView contentContainerStyle={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Update Produk</Text>
-
-          <TextInput placeholder="Nama" value={nama} onChangeText={setNama} style={styles.input} />
-          <TextInput placeholder="Stok" value={stok} onChangeText={setStok} keyboardType="numeric" style={styles.input} />
-          <TextInput placeholder="Harga" value={harga} onChangeText={setHarga} keyboardType="numeric" style={styles.input} />
-          <TextInput placeholder="Harga Beli" value={hargaBeli} onChangeText={setHargaBeli} keyboardType="numeric" style={styles.input} />
-          <TextInput placeholder="Foto (link)" value={foto} onChangeText={setFoto} style={styles.input} />
-          <TextInput placeholder="Supplier" value={supplier} onChangeText={setSupplier} style={styles.input} />
-
-          <Button title="Simpan" onPress={updateProduk} />
-          <View style={{ marginTop: 10 }} />
-          <Button title="Batal" color="gray" onPress={toggleModal} />
-        </ScrollView>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -150,42 +159,93 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
   },
-  backButton: {
-    marginBottom: 20,
-  },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  image: {
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  infoBox: {
+    backgroundColor: '#f9f9f9',
+    padding: 15,
+    borderRadius: 10,
+  },
+  row: {
     marginBottom: 10,
   },
-  fab: {
+  label: {
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  value: {
+    fontSize: 16,
+    color: '#333',
+  },
+  fabContainer: {
     position: 'absolute',
+    right: 20,
     bottom: 30,
-    right: 30,
-    backgroundColor: '#007AFF',
-    padding: 15,
+    flexDirection: 'column',
+    gap: 15,
+  },
+  fab: {
+    backgroundColor: '#3498db',
     borderRadius: 30,
+    padding: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
     elevation: 5,
   },
-  fabActions: {
-    position: 'absolute',
-    bottom: 100,
-    right: 30,
-  },
-  modalContainer: {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: '#000000aa',
+    justifyContent: 'center',
     padding: 20,
-    paddingTop: 60,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,
+    textAlign: 'center',
   },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
-    padding: 10,
-    marginBottom: 15,
     borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+  },
+  modalButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  modalButton: {
+    backgroundColor: '#3498db',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  modalButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  modalButtonCancel: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  modalButtonTextCancel: {
+    color: 'gray',
+    fontWeight: 'bold',
   },
 });

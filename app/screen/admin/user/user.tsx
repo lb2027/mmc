@@ -7,6 +7,8 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, Poppins_400Regular, Poppins_700Bold } from '@expo-google-fonts/poppins';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -14,7 +16,10 @@ export default function PageUser() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState('all');
   const [showRoleDropdown, setShowRoleDropdown] = useState(false); // new state
+
   const [newUser, setNewUser] = useState({
     username: '',
     password: '',
@@ -23,11 +28,13 @@ export default function PageUser() {
 
   const router = useRouter();
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchUsers();
+    }, [selectedRoleFilter])
+  );  
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (roleFilter = selectedRoleFilter) => {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
@@ -35,13 +42,17 @@ export default function PageUser() {
         headers: { token: token ?? '' },
       });
       const data = await response.json();
-      setUsers(Array.isArray(data) ? data : []);
+      const filtered = Array.isArray(data)
+        ? data.filter(user => roleFilter === 'all' || user.role === roleFilter)
+        : [];
+      setUsers(filtered);
     } catch (error) {
       console.error('Fetch error:', error);
     } finally {
       setLoading(false);
     }
   };
+
 
   const logout = async () => {
     try {
@@ -167,6 +178,9 @@ export default function PageUser() {
         borderBottomLeftRadius: 15,
         borderBottomRightRadius: 15,
       }}>
+        <TouchableOpacity onPress={() => setShowSortDropdown(true)}>
+          <Ionicons name="filter" size={24} color="white" />
+        </TouchableOpacity>
         <Text style={{ fontFamily: 'Poppins_700Bold', fontSize: 24, color: 'white' }}>Users</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <TouchableOpacity
@@ -231,6 +245,7 @@ export default function PageUser() {
                 borderRadius: 8, padding: 10, marginBottom: 10
               }}
             />
+            
 
             {/* Role Dropdown */}
             <TouchableOpacity
@@ -299,6 +314,51 @@ export default function PageUser() {
                 <Text style={{ fontFamily: 'Poppins_700Bold', fontWeight: 'bold' }}>Cancel</Text>
               </Pressable>
             </View>
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={showSortDropdown} transparent animationType="fade">
+        <View style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+        }}>
+          <View style={{
+            backgroundColor: 'white',
+            width: '70%',
+            borderRadius: 10,
+            padding: 20,
+          }}>
+            <Text style={{ fontFamily: 'Poppins_700Bold', fontSize: 16, marginBottom: 10 }}>Sort by Role</Text>
+            {['all', 'admin', 'staff'].map((role) => (
+              <TouchableOpacity
+                key={role}
+                onPress={() => {
+                  setSelectedRoleFilter(role);
+                  setShowSortDropdown(false);
+                  fetchUsers(role); // Pass the selected role to fetchUsers
+                }}
+                style={{
+                  paddingVertical: 10,
+                  borderBottomWidth: role !== 'staff' ? 1 : 0,
+                  borderBottomColor: '#ccc'
+                }}
+              >
+                <Text style={{
+                  fontFamily: 'Poppins_400Regular',
+                  color: selectedRoleFilter === role ? '#F3AA36' : 'black'
+                }}>
+                  {role.charAt(0).toUpperCase() + role.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              onPress={() => setShowSortDropdown(false)}
+              style={{ marginTop: 15, alignSelf: 'flex-end' }}
+            >
+              <Text style={{ color: '#F3AA36', fontFamily: 'Poppins_700Bold' }}>Close</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

@@ -1,8 +1,8 @@
+// UserDetail.tsx
 import React, { useState } from 'react';
 import {
   View,
   Text,
-  Button,
   Modal,
   TextInput,
   Alert,
@@ -10,17 +10,17 @@ import {
   TouchableOpacity,
   Dimensions,
   SafeAreaView,
+  ScrollView,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AntDesign } from '@expo/vector-icons';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 export default function UserDetail() {
   const { user } = useLocalSearchParams();
   const router = useRouter();
-
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const userData = typeof user === 'string' ? JSON.parse(user) : user;
   const [modalVisible, setModalVisible] = useState(false);
   const [form, setForm] = useState({
@@ -73,6 +73,7 @@ export default function UserDetail() {
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
+        style: 'destructive',
         onPress: async () => {
           try {
             const token = await AsyncStorage.getItem('token');
@@ -82,20 +83,12 @@ export default function UserDetail() {
                 'Content-Type': 'application/json',
                 token: token ?? '',
               },
-              body: JSON.stringify({ id: userData.id }), // Make sure this uses "id", not "user_id"
+              body: JSON.stringify({ id: userData.id }),
             });
-  
+
             const text = await response.text();
-            if (text) {
-              console.log("Delete response:", text);
-              try {
-                const json = JSON.parse(text);
-                console.log("Parsed JSON:", json);
-              } catch {
-                // Not JSON — safe to ignore
-              }
-            }
-  
+            if (text) console.log('Delete response:', text);
+
             Alert.alert('Deleted', 'User deleted.');
             router.back();
           } catch (err) {
@@ -106,37 +99,42 @@ export default function UserDetail() {
       },
     ]);
   };
-  
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      <View style={{ padding: 20 }}>
-        <Text style={styles.label}>Username:</Text>
-        <Text style={styles.value}>{userData.username}</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f4f6f9' }}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.card}>
+          <Text style={styles.header}>User Detail</Text>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Username</Text>
+            <Text style={styles.value}>{userData.username}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Password</Text>
+            <Text style={styles.value}>{userData.password}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Role</Text>
+            <Text style={styles.value}>{userData.role}</Text>
+          </View>
+        </View>
 
-        <Text style={styles.label}>Password:</Text>
-        <Text style={styles.value}>{userData.password}</Text>
+        {/* Buttons at Bottom */}
+        <View style={styles.bottomButtons}>
+          <TouchableOpacity style={styles.editBtn} onPress={() => setModalVisible(true)}>
+            <Text style={styles.btnText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+            <Text style={styles.btnText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
 
-        <Text style={styles.label}>Role:</Text>
-        <Text style={styles.value}>{userData.role}</Text>
-      </View>
-
-      {/* Floating Action Buttons */}
-      <View style={styles.fabContainer}>
-        <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
-          <AntDesign name="edit" size={24} color="white" />
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.fab, { backgroundColor: '#e74c3c' }]} onPress={handleDelete}>
-          <AntDesign name="delete" size={24} color="white" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Modal for update */}
+      {/* Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={{ fontSize: 18, marginBottom: 10 }}>Update User</Text>
-
+            <Text style={styles.modalTitle}>Update User</Text>
             <TextInput
               style={styles.input}
               placeholder="Username"
@@ -150,16 +148,44 @@ export default function UserDetail() {
               value={form.Password}
               onChangeText={(val) => setForm({ ...form, Password: val })}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Role"
-              value={form.Role}
-              onChangeText={(val) => setForm({ ...form, Role: val })}
-            />
+            <View style={styles.dropdownContainer}>
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => setShowRoleDropdown(!showRoleDropdown)}
+              >
+                <Text style={styles.dropdownButtonText}>
+                  {form.Role || 'Select Role'}
+                </Text>
+              </TouchableOpacity>
 
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Button title="Cancel" onPress={() => setModalVisible(false)} />
-              <Button title="Update" onPress={handleUpdate} />
+              {showRoleDropdown && (
+                <View style={styles.dropdownOptions}>
+                  {['admin', 'staff'].map((roleOption) => (
+                    <TouchableOpacity
+                      key={roleOption}
+                      style={styles.dropdownOption}
+                      onPress={() => {
+                        setForm({ ...form, Role: roleOption });
+                        setShowRoleDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownOptionText}>{roleOption}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+
+
+            
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
+                <Text style={styles.btnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn} onPress={handleUpdate}>
+                <Text style={styles.btnText}>Update</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -169,29 +195,59 @@ export default function UserDetail() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  header: {
+    fontSize: 22,
+    fontWeight: '600',
+    marginBottom: 20,
+    color: '#2c3e50',
+    textAlign: 'center',
+  },
+  infoRow: {
+    marginBottom: 15,
+  },
   label: {
-    fontWeight: 'bold',
-    marginTop: 15,
-    fontSize: 16,
+    fontSize: 14,
+    color: '#7f8c8d',
+    marginBottom: 5,
   },
   value: {
     fontSize: 16,
-    color: '#333',
+    color: '#34495e',
+    fontWeight: '500',
   },
-  fabContainer: {
+  bottomButtons: {
     position: 'absolute',
+    bottom: 20,
+    left: 20,
     right: 20,
-    bottom: 30,
-    flexDirection: 'column',
-    gap: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
   },
-  fab: {
-    backgroundColor: '#3498db',
-    borderRadius: 30,
-    padding: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 5,
+  editBtn: {
+    backgroundColor: '#F3AA36',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 10,
+  },
+  deleteBtn: {
+    backgroundColor: '#F3AA36',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 10,
   },
   modalOverlay: {
     flex: 1,
@@ -201,14 +257,86 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 16,
     padding: 20,
+    shadowColor: '#000',
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#2c3e50',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 10,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    fontSize: 16,
+    backgroundColor: '#f9f9f9',
   },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  cancelBtn: {
+    backgroundColor: '#f0f0f0',
+    padding: 12,
+    borderRadius: 10,
+    width: '48%',
+    alignItems: 'center',
+  },
+  saveBtn: {
+    backgroundColor: '#F3AA36',
+    padding: 12,
+    borderRadius: 10,
+    width: '48%',
+    alignItems: 'center',
+  },
+  btnText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  dropdownContainer: {
+    marginBottom: 12,
+  },
+  
+  dropdownButton: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 12,
+    backgroundColor: '#f9f9f9',
+  },
+  
+  dropdownButtonText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  
+  dropdownOptions: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  
+  dropdownOption: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  
+  dropdownOptionText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  
 });

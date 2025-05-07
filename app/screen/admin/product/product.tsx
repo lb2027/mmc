@@ -7,6 +7,8 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, Poppins_400Regular, Poppins_700Bold } from '@expo-google-fonts/poppins';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -26,9 +28,11 @@ export default function PageB() {
     Poppins_700Bold,
   });
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchProducts();
+    }, [])
+  );
 
   const fetchProducts = async () => {
     setLoading(true);
