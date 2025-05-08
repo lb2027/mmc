@@ -1,65 +1,107 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  Button,
+} from 'react-native';
 import { useFonts, Poppins_400Regular, Poppins_700Bold } from '@expo-google-fonts/poppins';
 
-export default function FormScreen() {
-  const titleRef = useRef<string>('');
-  const descriptionRef = useRef<string>('');
+const PreviewHeader = ({ title, description }: { title: string; description: string }) => (
+  <View style={styles.header}>
+    <Text style={styles.headerTitle}>Preview</Text>
+    <Text style={styles.previewText}>Title: {title}</Text>
+    <Text style={styles.previewText}>Description: {description}</Text>
+  </View>
+);
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+export default function FormScreen() {
+  const formRef = useRef<{[key:string]:HTMLInputElement|null}>({});
+
+  const [form, setForm] = useState({ title: '', description: '', numbers:  ''});
 
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
   });
 
-  const handleTitleChange = (text: string) => {
-    setTitle(text);
-    titleRef.current = text;
-  };
+  const handleChange = useCallback((key: keyof typeof form, value: string) => {
+    setForm(prev => {
+      const updated = { ...prev, [key]: value };
+      // formRef.current = updated;
+      return updated;
+    });
+  }, []);
 
-  const handleDescriptionChange = (text: string) => {
-    setDescription(text);
-    descriptionRef.current = text;
+  const handleInput = ()=> {
+    const total = parseInt(formRef.current['title']?.value) + parseInt(formRef.current['description']?.value);
+    const updated = { ...form, 
+      title: formRef.current['title']?.value,
+      description: formRef.current['description']?.value,
+      numbers: ''+total,
+    };
+    setForm(updated);
+  }
+
+  const handleSubmit = () => {
+    if (!form.title.trim() || !form.description.trim()) {
+      Alert.alert('Validation', 'Please fill in all fields.');
+      return;
+    }
+    Alert.alert('Submitted', 'Form submitted successfully!');
+    console.log('Submitted:', form);
   };
 
   useEffect(() => {
-    console.log('Title:', titleRef.current);
-    console.log('Description:', descriptionRef.current);
-  }, [title, description]);
+    if (__DEV__) {
+      console.log('Form Updated:', formRef.current);
+    }
+  }, [form]);
 
   if (!fontsLoaded) {
-    return <ActivityIndicator size="large" color="#F3AA36" style={{ flex: 1, justifyContent: 'center' }} />;
+    return (
+      <ActivityIndicator
+        size="large"
+        color="#F3AA36"
+        style={{ flex: 1, justifyContent: 'center' }}
+      />
+    );
   }
+
+  const fields = [
+    { key: 'title', label: 'Title', multiline: false },
+    { key: 'description', label: 'Description', multiline: true },
+  ];
 
   return (
     <View style={{ flex: 1, backgroundColor: '#fff' }}>
-      {/* Header Preview */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Preview</Text>
-        <Text style={styles.previewText}>Title: {titleRef.current}</Text>
-        <Text style={styles.previewText}>Description: {descriptionRef.current}</Text>
-      </View>
+      <PreviewHeader title={form.title} description={form.numbers} />
 
-      {/* Input Form */}
       <ScrollView contentContainerStyle={styles.formContainer}>
-        <Text style={styles.label}>Title</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter title"
-          value={title}
-          onChangeText={handleTitleChange}
-        />
+        {fields.map(field => (
+          <View key={field.key}>
+            <Text style={styles.label}>{field.label}</Text>
+            {/* <TextInput
+              style={[styles.input, field.multiline && { height: 100 }]}
+              placeholder={`Enter ${field.label.toLowerCase()}`}
+              value={form[field.key as keyof typeof form]}
+              onChangeText={text => handleChange(field.key as keyof typeof form, text)}
+              multiline={field.multiline}
+            /> */}
+            <input 
+            placeholder={`Enter ${field.label}`}
+            ref={(el)=>(formRef.current[field.key] = el)}
+            />
+          </View>
+        ))}
 
-        <Text style={styles.label}>Description</Text>
-        <TextInput
-          style={[styles.input, { height: 100 }]}
-          placeholder="Enter description"
-          value={description}
-          onChangeText={handleDescriptionChange}
-          multiline
-        />
+        <View style={{ marginTop: 30 }}>
+          <Button title="Save" onPress={handleInput} color="#F3AA36" />
+        </View>
       </ScrollView>
     </View>
   );
@@ -69,7 +111,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#F3AA36',
     paddingVertical: 30,
-    paddingHorizontal: 20, // gap left and right
+    paddingHorizontal: 20,
     borderBottomLeftRadius: 15,
     borderBottomRightRadius: 15,
   },
