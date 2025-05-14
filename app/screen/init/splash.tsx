@@ -31,7 +31,7 @@ export default function SplashScreen() {
 
       if (token && role) {
         if (role === 'admin') {
-          router.replace('/screen/admin/adminpage');
+          router.replace('/screen/admin/admindashboard');
         } else if (role === 'staff') {
           router.replace('/screen/staff/staffpage');
         } else {

@@ -48,7 +48,7 @@ export default function LoginPage() {
       await AsyncStorage.setItem('role', role);
 
       if (role === 'admin') {
-        router.replace('screen/admin/adminpage');
+        router.replace('screen/admin/admindashboard');
       } else if (role === 'staff') {
         router.replace('screen/staff/staffpage');
       } else {
