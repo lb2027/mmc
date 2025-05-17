@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+
 import {
   View,
   Text,
@@ -13,10 +16,12 @@ import {
 import { useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function StaffDetail() {
   const { staff } = useLocalSearchParams();
-  const staffData = typeof staff === 'string' ? JSON.parse(staff) : staff;
+  const initialStaffData = typeof staff === 'string' ? JSON.parse(staff) : staff;
+  const [staffData, setStaffData] = useState(initialStaffData);
 
   if (!staffData) {
     return (
@@ -25,7 +30,6 @@ export default function StaffDetail() {
       </View>
     );
   }
-
   const [salaries, setSalaries] = useState([]);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [newSalary, setNewSalary] = useState({
@@ -36,8 +40,11 @@ export default function StaffDetail() {
   });
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [showTransferDatePicker, setShowTransferDatePicker] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editStaffData, setEditStaffData] = useState({ ...staffData });
 
-  useEffect(() => {
+useFocusEffect(
+  useCallback(() => {
     const fetchSalaries = async () => {
       try {
         const token = await AsyncStorage.getItem('token');
@@ -63,7 +70,71 @@ export default function StaffDetail() {
     };
 
     fetchSalaries();
-  }, []);
+  }, [staffData.id])
+);
+
+
+  const handleDeleteStaff = async () => {
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this staff?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('token');
+              const response = await fetch('http://103.16.116.58:5050/deletestaff', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  token: token ?? '',
+                },
+                body: JSON.stringify({ id: staffData.id }),
+              });
+
+              const text = await response.text();
+              console.log('Delete Response:', text);
+              Alert.alert('Deleted', 'Staff has been deleted.');
+              setEditModalVisible(false);
+              // You might want to navigate back after deletion
+              // For example: router.back(); (if using Expo Router)
+            } catch (error) {
+              console.error('Delete Error:', error);
+              Alert.alert('Error', 'Failed to delete staff.');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const handleEditStaff = async () => {
+  try {
+    const token = await AsyncStorage.getItem('token');
+    const response = await fetch('http://103.16.116.58:5050/updatestaff', {
+      method: 'POST', // or 'PUT' depending on API
+      headers: {
+        'Content-Type': 'application/json',
+        token: token ?? '',
+      },
+      body: JSON.stringify(editStaffData),
+    });
+
+    const result = await response.text();
+    console.log('Update Response:', result);
+
+  setStaffData(editStaffData); 
+  Alert.alert('Success', 'Staff details updated.');
+  setEditModalVisible(false);
+  } catch (error) {
+    console.error('Update Error:', error);
+    Alert.alert('Error', 'Failed to update staff.');
+  }
+  };
 
   const handleAddSalary = async () => {
     try {
@@ -110,7 +181,16 @@ export default function StaffDetail() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f4f6f9' }}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.card}>
-          <Text style={styles.header}>Staff Detail</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.header}>Staff Detail</Text>
+            <TouchableOpacity onPress={() => {
+              setEditStaffData(staffData);
+              setEditModalVisible(true);
+            }}>
+              <Ionicons name="pencil" size={24} color="#F3AA36" />
+            </TouchableOpacity>
+
+          </View>
           <Text style={styles.label}>ID: {staffData.id}</Text>
           <Text style={styles.label}>Name: {staffData.nama}</Text>
           <Text style={styles.label}>Phone: {staffData.no_hp}</Text>
@@ -209,6 +289,66 @@ export default function StaffDetail() {
       <TouchableOpacity style={styles.fab} onPress={() => setAddModalVisible(true)}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
+      {/* Edit Staff Modal */}
+      <Modal visible={editModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Staff</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Name"
+              value={editStaffData.nama}
+              onChangeText={(val) => setEditStaffData({ ...editStaffData, nama: val })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Phone"
+              value={editStaffData.no_hp}
+              onChangeText={(val) => setEditStaffData({ ...editStaffData, no_hp: val })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={editStaffData.email}
+              onChangeText={(val) => setEditStaffData({ ...editStaffData, email: val })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Address"
+              value={editStaffData.alamat}
+              onChangeText={(val) => setEditStaffData({ ...editStaffData, alamat: val })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Employment Status"
+              value={editStaffData.status_kerja}
+              onChangeText={(val) => setEditStaffData({ ...editStaffData, status_kerja: val })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Date of Birth (YYYY-MM-DD)"
+              value={editStaffData.tanggal_lahir}
+              onChangeText={(val) =>
+                setEditStaffData({ ...editStaffData, tanggal_lahir: val })
+              }
+            />
+            <View style={[styles.modalButtons, { flexDirection: 'column', gap: 10 }]}>
+              <View style={{ flexDirection: 'row' }}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditModalVisible(false)}>
+                  <Text style={styles.btnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveBtn} onPress={handleEditStaff}>
+                  <Text style={styles.btnText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteStaff}>
+                <Text style={styles.btnText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -313,4 +453,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#fff',
   },
+  deleteBtn: {
+    backgroundColor: '#E53935',
+    padding: 10,
+    borderRadius: 8,
+  },
+
 });

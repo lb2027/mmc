@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+
 import {
   View, Text, FlatList, ActivityIndicator, Dimensions,
   Alert, TouchableOpacity, TextInput, Keyboard,
@@ -36,9 +39,12 @@ export default function StaffPage() {
     Poppins_700Bold,
   });
 
-  useEffect(() => {
-    fetchStaff();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchStaff();
+    }, [])
+  );
+
 
   const fetchStaff = async () => {
     try {
@@ -129,7 +135,7 @@ export default function StaffPage() {
   }
 
   return (
-    <View style={{ flex: 1, width: screenWidth, paddingHorizontal: 10, backgroundColor: '#fff' }}>
+    <View style={{ flex: 1, width: screenWidth, paddingHorizontal: 10 }}>
       {/* Header */}
       <View
         style={{
