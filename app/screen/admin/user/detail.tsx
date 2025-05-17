@@ -28,11 +28,12 @@ export default function UserDetail() {
     Password: userData.password,
     Role: userData.role,
   });
+  const baseUrl = 'http://103.16.116.58:5050';
 
   const handleUpdate = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://103.16.116.58:5050/updateuser', {
+      const response = await fetch('${baseUrl}/updateuser', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,7 +78,7 @@ export default function UserDetail() {
         onPress: async () => {
           try {
             const token = await AsyncStorage.getItem('token');
-            const response = await fetch('http://103.16.116.58:5050/deleteuser', {
+            const response = await fetch('${baseUrl}/deleteuser', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

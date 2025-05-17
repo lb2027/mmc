@@ -20,7 +20,7 @@ export default function PageB() {
   const [newProduct, setNewProduct] = useState({
     nama: '', stok: '', harga: '', harga_beli: '', foto: '', supplier: ''
   });
-
+  const baseUrl = 'http://103.16.116.58:5050';
   const router = useRouter();
 
   const [fontsLoaded] = useFonts({
@@ -38,7 +38,7 @@ export default function PageB() {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://103.16.116.58:5050/selectproduk', {
+      const response = await fetch('${baseUrl}/selectproduk', {
         headers: { token: token ?? '' },
       });
       const data = await response.json();
@@ -68,7 +68,7 @@ export default function PageB() {
   const handleCreateProduct = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://103.16.116.58:5050/addproduk', {
+      const response = await fetch('${baseUrl}/addproduk', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -121,7 +121,7 @@ export default function PageB() {
     >
     {item.foto ? (
       <Image
-        source={{ uri: `http://103.16.116.58:5050/images/${item.foto}` }}
+        source={{ uri: `${baseUrl}/images/${item.foto}` }}
         style={{ height: 100, borderRadius: 8, marginBottom: 5 }}
         resizeMode="cover"
         onError={() => setImageError(true)}  // Handle image error

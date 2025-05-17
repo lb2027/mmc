@@ -22,6 +22,7 @@ export default function StaffDetail() {
   const { staff } = useLocalSearchParams();
   const initialStaffData = typeof staff === 'string' ? JSON.parse(staff) : staff;
   const [staffData, setStaffData] = useState(initialStaffData);
+  const baseUrl = 'http://103.16.116.58:5050';
 
   if (!staffData) {
     return (
@@ -50,7 +51,7 @@ useFocusEffect(
         const token = await AsyncStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch('http://103.16.116.58:5050/getgaji', {
+        const response = await fetch('${baseUrl}/getgaji', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -86,7 +87,7 @@ useFocusEffect(
           onPress: async () => {
             try {
               const token = await AsyncStorage.getItem('token');
-              const response = await fetch('http://103.16.116.58:5050/deletestaff', {
+              const response = await fetch('${baseUrl}/deletestaff', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -115,7 +116,7 @@ useFocusEffect(
   const handleEditStaff = async () => {
   try {
     const token = await AsyncStorage.getItem('token');
-    const response = await fetch('http://103.16.116.58:5050/updatestaff', {
+    const response = await fetch('${baseUrl}/updatestaff', {
       method: 'POST', // or 'PUT' depending on API
       headers: {
         'Content-Type': 'application/json',
@@ -139,7 +140,7 @@ useFocusEffect(
   const handleAddSalary = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://103.16.116.58:5050/addgaji', {
+      const response = await fetch('${baseUrl}/addgaji', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +160,7 @@ useFocusEffect(
       setAddModalVisible(false);
       setNewSalary({ bulan_gaji: '', gaji_perbulan: '', tanggal_transfer: '', keterangan: '' });
 
-      const updated = await fetch('http://103.16.116.58:5050/getgaji', {
+      const updated = await fetch('${baseUrl}/getgaji', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

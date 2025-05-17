@@ -14,7 +14,8 @@ import { TouchableOpacity } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
 
-const BASE_URL = 'http://103.16.116.58:5050';
+const baseUrl = 'http://103.16.116.58:5050';
+
 const screenWidth = Dimensions.get('window').width;
 
 export default function AdminDashboard() {
@@ -47,11 +48,11 @@ export default function AdminDashboard() {
       const endDate = today.toISOString().slice(0, 10);
 
       const endpoints = [
-        { name: 'history', url: `${BASE_URL}/displayhistory` },
-        { name: 'daily', url: `${BASE_URL}/dailysales` },
-        { name: 'weekly', url: `${BASE_URL}/weeklysales?startDate=${startDate}&endDate=${endDate}` },
-        { name: 'monthly', url: `${BASE_URL}/monthlysales` },
-        { name: 'inventory', url: `${BASE_URL}/inventorystatus` },
+        { name: 'history', url: `${baseUrl}/displayhistory` },
+        { name: 'daily', url: `${baseUrl}/dailysales` },
+        { name: 'weekly', url: `${baseUrl}/weeklysales?startDate=${startDate}&endDate=${endDate}` },
+        { name: 'monthly', url: `${baseUrl}/monthlysales` },
+        { name: 'inventory', url: `${baseUrl}/inventorystatus` },
       ];
 
       const responses = await Promise.all(endpoints.map(e => fetch(e.url, { headers })));
