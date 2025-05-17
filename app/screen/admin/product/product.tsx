@@ -103,6 +103,7 @@ export default function PageB() {
   };
 
   const renderCard = ({ item }: { item: any }) => (
+    //console.log('Image URL:', `http://103.16.116.58:5050/images/${item.foto}`),
     <TouchableOpacity
       onPress={() => router.push({
         pathname: 'screen/admin/product/detail',

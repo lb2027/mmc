@@ -12,16 +12,30 @@ export default function ProductDetail() {
   const { produk } = useLocalSearchParams();
   const router = useRouter();
   const data = typeof produk === 'string' ? JSON.parse(produk) : produk;
-
   const [modalVisible, setModalVisible] = useState(false);
+  const baseUrl = 'http://103.16.116.58:5050';
+  function getFullImageUrl(foto) {
+    if (!foto) return null;
+    return foto.startsWith('http') ? foto : `${baseUrl}/images/${foto}`;
+  }
+  const imageUrl = getFullImageUrl(data.foto);
   const [form, setForm] = useState({
     nama: data.nama,
     stok: String(data.stok),
     harga: String(data.harga),
     hargaBeli: String(data.harga_beli),
-    foto: data.foto,
+    foto: imageUrl,
     supplier: data.supplier,
   });
+  {console.log('Foto URL:', imageUrl)} {/* ✅ Debugging line */}
+  {imageUrl ? (
+    <Image
+      source={{ uri: imageUrl }}
+      style={styles.image}
+      resizeMode="contain"
+    />
+  ) : null}
+
 
   const handleUpdate = async () => {
     try {
@@ -95,7 +109,11 @@ export default function ProductDetail() {
       <View style={styles.card}>
         <Text style={styles.header}>Detail Produk</Text>
         {data.foto ? (
-          <Image source={{ uri: data.foto }} style={styles.image} resizeMode="contain" />
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.image}
+            resizeMode="cover"
+          />
         ) : null}
         <View style={styles.grid}>
           <View style={styles.cell}>
@@ -185,10 +203,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   image: {
-    width: '100%',
+    width: 200,
     height: 200,
+    borderRadius: 8, 
+    borderWidth: 2,
+    borderColor: '#ccc',
     marginBottom: 20,
-    borderRadius: 12,
+    alignSelf: 'center',
   },
   infoRow: {
     marginBottom: 15,
