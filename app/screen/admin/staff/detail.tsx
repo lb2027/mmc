@@ -17,6 +17,7 @@ import { useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
+import AttendanceCard from './components/attendancecard';
 
 export default function StaffDetail() {
   const { staff } = useLocalSearchParams();
@@ -42,6 +43,7 @@ export default function StaffDetail() {
   const [showTransferDatePicker, setShowTransferDatePicker] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editStaffData, setEditStaffData] = useState({ ...staffData });
+  const staffId = staffData?.id;
 
 useFocusEffect(
   useCallback(() => {
@@ -199,10 +201,16 @@ useFocusEffect(
           <Text style={styles.label}>Status: {staffData.status_kerja}</Text>
         </View>
 
-        {salaries.length > 0 ? (
-          <View style={styles.card}>
-            <Text style={styles.header}>Salary History</Text>
-            {salaries.map((salary) => (
+        <View style={styles.card}>
+          <Text style={styles.header}>Salary History</Text>
+
+          {/* FAB inside the card */}
+          <TouchableOpacity style={styles.fabInsideCard} onPress={() => setAddModalVisible(true)}>
+            <Text style={styles.fabText}>+</Text>
+          </TouchableOpacity>
+
+          {salaries.length > 0 ? (
+            salaries.map((salary) => (
               <View key={salary.id} style={styles.salaryItem}>
                 <Text style={styles.salaryText}>Month: {new Date(salary.bulan_gaji).toLocaleDateString()}</Text>
                 <Text style={styles.salaryText}>Amount: Rp {salary.gaji_perbulan.toLocaleString()}</Text>
@@ -210,15 +218,14 @@ useFocusEffect(
                 <Text style={styles.salaryText}>Note: {salary.keterangan}</Text>
                 <View style={styles.divider} />
               </View>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.card}>
-            <Text style={styles.header}>Salary History</Text>
+            ))
+          ) : (
             <Text style={styles.salaryText}>No salary records found.</Text>
-          </View>
-        )}
+          )}
+        </View>
+
       </ScrollView>
+      <AttendanceCard selectedStaffId={staffId} />
 
       {/* Add Salary Modal */}
       <Modal visible={addModalVisible} animationType="slide" transparent>
@@ -457,6 +464,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#E53935',
     padding: 10,
     borderRadius: 8,
+  },
+  fabInsideCard: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#F3AA36',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,  // for Android shadow
+    shadowColor: '#000',  // for iOS shadow
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
 
 });
