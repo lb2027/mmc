@@ -23,7 +23,7 @@ export default function PageC() {
   const router = useRouter();
   const [transaksi, setTransaksi] = useState<Transaksi[]>([]);
   const [loading, setLoading] = useState(true);
-  const baseUrl = 'http://103.16.116.58:5050';
+
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
@@ -42,7 +42,7 @@ export default function PageC() {
         return;
       }
 
-      const response = await fetch('${baseUrl}/selecttransaksi', {
+      const response = await fetch('http://103.16.116.58:5050/selecttransaksi', {
         headers: {
           'Content-Type': 'application/json',
           token: token,

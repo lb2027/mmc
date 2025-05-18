@@ -8,7 +8,6 @@ export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const baseUrl = 'http://103.16.116.58:5050';
 
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -17,7 +16,7 @@ export default function LoginPage() {
 
   const login = async () => {
     try {
-      const response = await fetch('${baseUrl}/login', {
+      const response = await fetch('http://103.16.116.58:5050/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -33,7 +32,7 @@ export default function LoginPage() {
       await AsyncStorage.setItem('username', username);
 
       const token = await AsyncStorage.getItem('token');
-      const userResponse = await fetch('${baseUrl}/selectuser', {
+      const userResponse = await fetch('http://103.16.116.58:5050/selectuser', {
         method: 'GET',
         headers: { 'token': token, 'Content-Type': 'application/json' },
       });

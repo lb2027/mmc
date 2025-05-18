@@ -7,7 +7,6 @@ export default function RegisterPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const baseUrl = 'http://103.16.116.58:5050';
 
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -16,7 +15,7 @@ export default function RegisterPage() {
 
   const handleRegister = async () => {
     try {
-      const response = await fetch('${baseUrl}/register', {
+      const response = await fetch('http://103.16.116.58:5050/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),

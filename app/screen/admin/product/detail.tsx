@@ -40,7 +40,7 @@ export default function ProductDetail() {
   const handleUpdate = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch(`${baseUrl}/updateproduk`, {
+      const response = await fetch('http://103.16.116.58:5050/updateproduk', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -79,7 +79,7 @@ export default function ProductDetail() {
         onPress: async () => {
           try {
             const token = await AsyncStorage.getItem('token');
-            const response = await fetch('${baseUrl}/deleteproduk', {
+            const response = await fetch('http://103.16.116.58:5050/deleteproduk', {
               method: 'DELETE',
               headers: {
                 'Content-Type': 'application/json',

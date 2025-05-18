@@ -19,7 +19,6 @@ export default function PageUser() {
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [selectedRoleFilter, setSelectedRoleFilter] = useState('all');
   const [showRoleDropdown, setShowRoleDropdown] = useState(false); // new state
-  const baseUrl = 'http://103.16.116.58:5050';
 
   const [newUser, setNewUser] = useState({
     username: '',
@@ -39,7 +38,7 @@ export default function PageUser() {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('${baseUrl}/selectuser', {
+      const response = await fetch('http://103.16.116.58:5050/selectuser', {
         headers: { token: token ?? '' },
       });
       const data = await response.json();
@@ -68,7 +67,7 @@ export default function PageUser() {
   const handleCreateUser = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('${baseUrl}/adduser', {
+      const response = await fetch('http://103.16.116.58:5050/adduser', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -30,7 +30,6 @@ export default function StaffPage() {
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [filteredStaff, setFilteredStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
-  const baseUrl = 'http://103.16.116.58:5050';
 
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -56,7 +55,7 @@ export default function StaffPage() {
         return;
       }
 
-      const response = await fetch('${baseUrl}/staff', {
+      const response = await fetch('http://103.16.116.58:5050/staff', {
         headers: {
           'Content-Type': 'application/json',
           token: token,
