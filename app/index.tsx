@@ -10,19 +10,21 @@ export default function Index() {
       const token = await AsyncStorage.getItem('token');
       const role = await AsyncStorage.getItem('role');
 
-      if (token && role) {
-        if (role === 'admin') {
-          router.replace('/screen/admin/adminpage');
-        } else if (role === 'staff') {
-          router.replace('/screen/staff/staffpage');
-        } else {
-          router.replace('/screen/user/userpage');
-        }
-        
+    if (token && role) {
+      if (role === 'admin') {
+        console.log('Routing to admin');
+        router.replace('/screen/admin/adminpage');
+      } else if (role === 'staff') {
+        console.log('Routing to staff attendancepage');
+        router.replace('/screen/staff/attendancepage');
       } else {
-        router.replace('/screen/init/splash'); // Redirect to splash screen if not authenticated
-        //router.replace('/screen/form/form');
+        console.log('Routing to user page');
+        router.replace('/screen/user/userpage');
       }
+    } else {
+      console.log('No token or role, routing to splash');
+      router.replace('/screen/init/splash');
+    }
     };
 
     checkAuth();

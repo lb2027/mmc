@@ -1,8 +1,19 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFonts, Poppins_400Regular, Poppins_700Bold } from '@expo-google-fonts/poppins';
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_700Bold,
+} from '@expo-google-fonts/poppins';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,23 +45,34 @@ export default function LoginPage() {
       const token = await AsyncStorage.getItem('token');
       const userResponse = await fetch('http://103.16.116.58:5050/selectuser', {
         method: 'GET',
-        headers: { 'token': token, 'Content-Type': 'application/json' },
+        headers: { token, 'Content-Type': 'application/json' },
       });
 
       const users = await userResponse.json();
       const foundUser = users.find((u) => u.username === username);
+      console.log("Found user:", foundUser);
+
       if (!foundUser) {
         Alert.alert('Login Failed', 'User tidak ditemukan.');
         return;
       }
 
-      const role = foundUser.role;
+      const { role, id } = foundUser;
+      const staff_id = id; // 👈 store staff_id
+
+
       await AsyncStorage.setItem('role', role);
+      if (staff_id !== undefined && staff_id !== null) {
+        console.log('Storing staff_id:', staff_id); // ✅ now logs a real ID
+        await AsyncStorage.setItem('staff_id', staff_id.toString());
+      } else {
+        console.warn('No staff_id found in user object');
+      }
 
       if (role === 'admin') {
         router.replace('screen/admin/admindashboard');
       } else if (role === 'staff') {
-        router.replace('screen/staff/staffpage');
+        router.replace('screen/staff/attendancepage');
       } else {
         router.replace('screen/user/userpage');
       }
@@ -61,7 +83,7 @@ export default function LoginPage() {
   };
 
   if (!fontsLoaded) {
-    return null; // Or a loading spinner
+    return null; // or a spinner
   }
 
   return (
