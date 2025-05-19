@@ -1,73 +1,181 @@
-import { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useFonts, Poppins_400Regular, Poppins_700Bold } from '@expo-google-fonts/poppins';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+} from 'react-native';
 
-export default function RegisterPage() {
-  const router = useRouter();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-
-  const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
+const RegisterScreen = () => {
+  const [form, setForm] = useState({
+    username: '',
+    password: '',
+    nama: '',
+    no_hp: '',
+    alamat: '',
+    email: '',
+    tanggal_lahir: '',
   });
+
+  const handleChange = (name: string, value: string) => {
+    setForm({ ...form, [name]: value });
+  };
+
+  const formatDate = (dateStr: string) => {
+    // Just a placeholder to make sure date is YYYY-MM-DD
+    return dateStr;
+  };
 
   const handleRegister = async () => {
     try {
-      const response = await fetch('http://103.16.116.58:5050/register', {
+      console.log('🔐 Logging in as mdr...');
+      const loginRes = await fetch('http://103.16.116.58:5050/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: 'mdr', password: 'mdr' }),
       });
 
-      const data = await response.json();
-      if (response.ok) {
-        console.log('Token:', data.token);
-        router.replace('/login');
+      const loginData = await loginRes.json();
+      const token = loginData.token;
+      console.log('✅ Login success. Token:', token);
+
+      console.log('📤 Sending adduser request...');
+      const userRes = await fetch('http://103.16.116.58:5050/adduser', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          token,
+        },
+        body: JSON.stringify({
+          username: form.username,
+          password: form.password,
+          role: 'admin',
+        }),
+      });
+
+      const userResult = await userRes.json();
+      console.log('User add response:', userResult);
+
+      if (userRes.ok) {
+        console.log('📥 Fetching all users to find new user ID...');
+        const selectUserRes = await fetch('http://103.16.116.58:5050/selectuser', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            token,
+          },
+        });
+        const users = await selectUserRes.json();
+
+        const newUser = users.find((u: any) => u.username === form.username);
+        if (!newUser) {
+          Alert.alert('Error', 'New user not found after creation.');
+          return;
+        }
+        const user_id = newUser.id;
+        console.log('Found new user ID:', user_id);
+
+        console.log('📤 Sending addstaff request...');
+        const staffRes = await fetch('http://103.16.116.58:5050/addstaff', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            token,
+          },
+          body: JSON.stringify({
+            nama: form.nama,
+            id: user_id,
+            user_id,
+            no_hp: form.no_hp,
+            alamat: form.alamat,
+            email: form.email,
+            status_kerja: 'staff',
+            tanggal_lahir: formatDate(form.tanggal_lahir),
+          }),
+        });
+
+        const staffData = await staffRes.json();
+        console.log('Staff add response:', staffData);
+        Alert.alert('Success', 'User & staff successfully registered!');
+        // Reset form if needed
+        setForm({
+          username: '',
+          password: '',
+          nama: '',
+          no_hp: '',
+          alamat: '',
+          email: '',
+          tanggal_lahir: '',
+        });
       } else {
-        Alert.alert('Register Failed', data.message || 'Registration error');
+        Alert.alert('Failed', 'Failed to add user.');
       }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Something went wrong');
+    } catch (err) {
+      console.error('❌ Register error:', err);
+      Alert.alert('Error', 'Something went wrong during registration.');
     }
   };
 
-  if (!fontsLoaded) return null;
-
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>BINTANG{"\n"}JAWA</Text>
-
+      {/* <Text style={styles.title}>Register New Staff</Text> */}
       <View style={styles.formContainer}>
         <TextInput
-          placeholder="Username"
-          placeholderTextColor="#999"
-          value={username}
-          onChangeText={setUsername}
           style={styles.input}
+          placeholder="Username"
+          value={form.username}
+          onChangeText={(text) => handleChange('username', text)}
+          autoCapitalize="none"
         />
         <TextInput
-          placeholder="Password"
-          placeholderTextColor="#999"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
           style={styles.input}
+          placeholder="Password"
+          value={form.password}
+          onChangeText={(text) => handleChange('password', text)}
+          secureTextEntry
         />
-
+        <TextInput
+          style={styles.input}
+          placeholder="Full Name"
+          value={form.nama}
+          onChangeText={(text) => handleChange('nama', text)}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Phone Number"
+          value={form.no_hp}
+          onChangeText={(text) => handleChange('no_hp', text)}
+          keyboardType="phone-pad"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Address"
+          value={form.alamat}
+          onChangeText={(text) => handleChange('alamat', text)}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          value={form.email}
+          onChangeText={(text) => handleChange('email', text)}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Date of Birth (YYYY-MM-DD)"
+          value={form.tanggal_lahir}
+          onChangeText={(text) => handleChange('tanggal_lahir', text)}
+        />
         <TouchableOpacity style={styles.button} onPress={handleRegister}>
           <Text style={styles.buttonText}>Register</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => router.push('./login')}>
-          <Text style={styles.registerText}>Already have an account? Login</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -115,11 +223,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Poppins_700Bold',
   },
-  registerText: {
-    color: '#000',
-    textAlign: 'center',
-    marginTop: 15,
-    textDecorationLine: 'underline',
-    fontFamily: 'Poppins_400Regular',
-  },
 });
+
+export default RegisterScreen;

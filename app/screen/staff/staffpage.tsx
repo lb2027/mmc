@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, TextInput,
-  ActivityIndicator, Alert, Image, Dimensions, Pressable
+  ActivityIndicator, Alert, Image, Dimensions, Pressable, Modal
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -12,9 +12,12 @@ const screenWidth = Dimensions.get('window').width;
 
 export default function StaffPage() {
   const [products, setProducts] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [quantity, setQuantity] = useState('');
+  const [selectedItems, setSelectedItems] = useState<any[]>([]);
+  const [quantities, setQuantities] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [showAllModal, setShowAllModal] = useState(false);
   const router = useRouter();
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -24,6 +27,11 @@ export default function StaffPage() {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('token');
+    router.replace('/');
+  };
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -41,165 +49,208 @@ export default function StaffPage() {
     }
   };
 
-  const handleSelect = (item: any) => {
-    if (selectedProduct?.produk_id === item.produk_id) {
-      // Deselect if already selected
-      setSelectedProduct(null);
-      setQuantity('');
+  const filteredProducts = products.filter((product: any) =>
+    product.nama.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  const toggleSelectProduct = (item: any) => {
+    const alreadySelected = selectedItems.some((p) => p.produk_id === item.produk_id);
+    if (alreadySelected) {
+      setSelectedItems(selectedItems.filter((p) => p.produk_id !== item.produk_id));
+      const newQuantities = { ...quantities };
+      delete newQuantities[item.produk_id];
+      setQuantities(newQuantities);
     } else {
-      // Select new product
-      setSelectedProduct(item);
-      setQuantity('');
+      setSelectedItems([...selectedItems, item]);
     }
   };
-  
+
+  const handleQuantityChange = (produkId: string, qty: string) => {
+    setQuantities({ ...quantities, [produkId]: qty });
+  };
 
   const handleCheckout = async () => {
-    if (!selectedProduct || !quantity) {
-      Alert.alert('Warning', 'Please select a product and enter a quantity.');
+    if (selectedItems.length === 0) {
+      Alert.alert('Warning', 'Please select at least one product.');
       return;
     }
 
-    const soldQuantity = parseInt(quantity);
-    if (isNaN(soldQuantity) || soldQuantity <= 0) {
-      Alert.alert('Warning', 'Quantity must be a positive number.');
-      return;
-    }
+    const soldItems = [];
 
-    const newStock = selectedProduct.stok - soldQuantity;
-    if (newStock < 0) {
-      Alert.alert('Failed', 'Not enough stock.');
-      return;
+    for (const item of selectedItems) {
+      const qtyStr = quantities[item.produk_id];
+      const qty = parseInt(qtyStr);
+
+      if (!qtyStr || isNaN(qty) || qty <= 0) {
+        Alert.alert('Warning', `Quantity for ${item.nama} is invalid.`);
+        return;
+      }
+
+      if (item.stok < qty) {
+        Alert.alert('Warning', `Not enough stock for ${item.nama}.`);
+        return;
+      }
+
+      soldItems.push({
+        produk_id: item.produk_id,
+        stok_keluar: qty,
+      });
     }
 
     try {
       const token = await AsyncStorage.getItem('token');
 
-      await fetch('http://103.16.116.58:5050/updateproduk', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          token: token ?? '',
-        },
-        body: JSON.stringify({
-          ...selectedProduct,
-          stok: newStock,
-        }),
-      });
-
-      const totalPrice = selectedProduct.harga * soldQuantity;
-      await fetch('http://103.16.116.58:5050/addtransaksi', {
+      const res = await fetch('http://103.16.116.58:5050/soldproduk', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           token: token ?? '',
         },
-        body: JSON.stringify({
-          nama_produk: selectedProduct.nama,
-          harga: selectedProduct.harga,
-          jumlah_terjual: soldQuantity,
-          total_harga: totalPrice,
-          tanggal: new Date().toISOString(),
-        }),
+        body: JSON.stringify(soldItems),
       });
 
-      Alert.alert('Success', 'Checkout completed.');
-      setSelectedProduct(null);
-      setQuantity('');
-      setTimeout(() => fetchProducts(), 500);
+      const result = await res.json();
+
+      if (!res.ok) {
+        console.error('SoldProduk error:', result);
+        Alert.alert('Failed', result?.error || 'Failed to process sold items.');
+        return;
+      }
+
+      for (const item of selectedItems) {
+        const qty = parseInt(quantities[item.produk_id]);
+        const totalPrice = qty * item.harga;
+
+        await fetch('http://103.16.116.58:5050/addtransaksi', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            token: token ?? '',
+          },
+          body: JSON.stringify({
+            nama_produk: item.nama,
+            harga: item.harga,
+            jumlah_terjual: qty,
+            total_harga: totalPrice,
+            tanggal: new Date().toISOString(),
+          }),
+        });
+      }
+
+      Alert.alert('Success', 'All items checked out successfully!');
+      setSelectedItems([]);
+      setQuantities({});
+      fetchProducts();
+      setShowAllModal(false); // also close modal if open
     } catch (error) {
       console.error('Checkout error:', error);
       Alert.alert('Failed', 'An error occurred during checkout.');
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await AsyncStorage.multiRemove(['token', 'username', 'role']);
-      Alert.alert('Logged Out', 'You have been logged out.');
-      router.replace('/');
-    } catch (error) {
-      Alert.alert('Error', 'Logout failed.');
-    }
+  const renderItem = ({ item }: { item: any }) => {
+    const isSelected = selectedItems.some(p => p.produk_id === item.produk_id);
+    return (
+      <TouchableOpacity
+        onPress={() => toggleSelectProduct(item)}
+        style={{
+          backgroundColor: isSelected ? '#d4edda' : '#fff',
+          borderRadius: 10,
+          padding: 10,
+          margin: 5,
+          flex: 1,
+          flexDirection: 'row',
+          alignItems: 'center',
+          elevation: 2,
+        }}
+      >
+        <Image
+          source={{ uri: `http://103.16.116.58:5050/images/${item.foto}` }}
+          style={{ width: 60, height: 60, borderRadius: 8, marginRight: 10 }}
+          resizeMode="cover"
+        />
+        <View>
+          <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{item.nama}</Text>
+          <Text style={{ fontFamily: 'Poppins_400Regular' }}>
+            Price: Rp{item.harga}
+          </Text>
+          <Text>Stock: {item.stok}</Text>
+        </View>
+      </TouchableOpacity>
+    );
   };
-
-  const renderItem = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      onPress={() => handleSelect(item)}
-      style={{
-        backgroundColor: selectedProduct?.produk_id === item.produk_id ? '#d4edda' : '#fff',
-        borderRadius: 10,
-        padding: 10,
-        margin: 5,
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        elevation: 2,
-      }}
-    >
-      <Image
-        source={{ uri: `http://103.16.116.58:5050/uploads/${item.foto}` }}
-        style={{ width: 60, height: 60, borderRadius: 8, marginRight: 10 }}
-        resizeMode="cover"
-      />
-      <View>
-        <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{item.nama}</Text>
-        <Text style={{ fontFamily: 'Poppins_400Regular' }}>
-          Price: Rp{item.harga}
-        </Text>
-        <Text>Stock: {item.stok}</Text>
-      </View>
-    </TouchableOpacity>
-  );
 
   return (
     <View style={{ flex: 1, width: screenWidth, paddingHorizontal: 10 }}>
       {/* Header */}
       <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        flexDirection: 'column',
+        backgroundColor: '#F3AA36',
         paddingTop: 50,
         paddingBottom: 10,
-        backgroundColor: '#F3AA36',
         paddingHorizontal: 15,
         borderBottomLeftRadius: 15,
         borderBottomRightRadius: 15,
       }}>
-        <Text style={{
-          fontSize: 24,
-          color: 'white',
-          fontFamily: 'Poppins_700Bold'
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
         }}>
-          Cashier
-        </Text>
-        <View style={{ flexDirection: 'row', gap: 15 }}>
-          <TouchableOpacity onPress={() => router.push({
-            pathname: 'screen/staff/detail/history',
-          })}>
-            <Ionicons name="time-outline" size={28} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={28} color="#fff" />
-          </TouchableOpacity>
+          <Text style={{
+            fontSize: 24,
+            color: 'white',
+            fontFamily: 'Poppins_700Bold'
+          }}>
+            Cashier
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 15 }}>
+            <TouchableOpacity onPress={() => {
+              setSearchVisible(!searchVisible);
+              if (searchVisible) setSearchText('');
+            }}>
+              <Ionicons name="search-outline" size={28} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('screen/staff/detail/history')}>
+              <Ionicons name="time-outline" size={28} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={28} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
+        {searchVisible && (
+          <TextInput
+            placeholder="Search product name..."
+            value={searchText}
+            onChangeText={setSearchText}
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: 10,
+              paddingHorizontal: 15,
+              paddingVertical: 8,
+              marginTop: 10,
+              fontFamily: 'Poppins_400Regular',
+            }}
+          />
+        )}
+      </View>
 
       {/* Product List */}
       {loading ? (
         <ActivityIndicator size="large" color="#F3AA36" style={{ marginTop: 20 }} />
       ) : (
         <FlatList
-          data={products}
+          data={filteredProducts}
           keyExtractor={(item) => item.produk_id?.toString()}
           renderItem={renderItem}
           contentContainerStyle={{ padding: 10 }}
         />
       )}
 
-      {/* Selected Product & Checkout */}
-      {selectedProduct && (
+      {/* Bottom Checkout Panel */}
+      {selectedItems.length > 0 && (
         <View style={{
           position: 'absolute',
           bottom: 0,
@@ -210,22 +261,40 @@ export default function StaffPage() {
           borderTopRightRadius: 20,
           elevation: 10,
         }}>
-          <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>
-            Selected product: {selectedProduct.nama}
-          </Text>
-          <TextInput
-            placeholder="Quantity"
-            value={quantity}
-            keyboardType="numeric"
-            onChangeText={setQuantity}
-            style={{
-              borderWidth: 1,
-              borderColor: '#ccc',
-              borderRadius: 8,
-              padding: 10,
-              marginBottom: 10,
-            }}
-          />
+          {(selectedItems.length > 3 ? selectedItems.slice(0, 3) : selectedItems).map((item) => (
+            <View key={item.produk_id} style={{ marginBottom: 10 }}>
+              <Text style={{ fontWeight: 'bold' }}>{item.nama}</Text>
+              <TextInput
+                placeholder="Quantity"
+                value={quantities[item.produk_id] || ''}
+                keyboardType="numeric"
+                onChangeText={(val) => handleQuantityChange(item.produk_id, val)}
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#ccc',
+                  borderRadius: 8,
+                  padding: 10,
+                  marginTop: 5,
+                }}
+              />
+            </View>
+          ))}
+
+          {selectedItems.length > 3 && (
+            <Pressable
+              onPress={() => setShowAllModal(true)}
+              style={{
+                backgroundColor: '#ccc',
+                padding: 10,
+                borderRadius: 8,
+                alignItems: 'center',
+                marginBottom: 10,
+              }}
+            >
+              <Text style={{ fontWeight: 'bold' }}>Show All Items</Text>
+            </Pressable>
+          )}
+
           <Pressable
             onPress={handleCheckout}
             style={{
@@ -239,6 +308,76 @@ export default function StaffPage() {
           </Pressable>
         </View>
       )}
+
+      {/* Fullscreen Modal Overlay */}
+      <Modal
+        visible={showAllModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAllModal(false)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'center',
+          padding: 20,
+        }}>
+          <View style={{
+            backgroundColor: '#fff',
+            borderRadius: 15,
+            padding: 20,
+            maxHeight: '80%',
+          }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}>Selected Items</Text>
+
+            <FlatList
+              data={selectedItems}
+              keyExtractor={(item) => item.produk_id.toString()}
+              renderItem={({ item }) => (
+                <View style={{ marginBottom: 10 }}>
+                  <Text style={{ fontWeight: 'bold' }}>{item.nama}</Text>
+                  <TextInput
+                    placeholder="Quantity"
+                    value={quantities[item.produk_id] || ''}
+                    keyboardType="numeric"
+                    onChangeText={(val) => handleQuantityChange(item.produk_id, val)}
+                    style={{
+                      borderWidth: 1,
+                      borderColor: '#ccc',
+                      borderRadius: 8,
+                      padding: 10,
+                      marginTop: 5,
+                    }}
+                  />
+                </View>
+              )}
+            />
+
+            <Pressable
+              onPress={handleCheckout}
+              style={{
+                backgroundColor: '#F3AA36',
+                padding: 12,
+                borderRadius: 8,
+                alignItems: 'center',
+                marginTop: 20,
+              }}
+            >
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>Checkout</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setShowAllModal(false)}
+              style={{
+                marginTop: 10,
+                alignItems: 'center'
+              }}
+            >
+              <Text style={{ color: '#888' }}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
