@@ -19,98 +19,113 @@ export default function AttendancePage() {
 
   const todayDate = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
 
-const checkAttendance = async () => {
-  try {
-    const storedId = await AsyncStorage.getItem('staff_id');
-    const token = await AsyncStorage.getItem('token');
-    console.log('Stored Staff ID:', storedId);
-    console.log('Token:', token);
 
-    if (!storedId || !token) {
-      Alert.alert('Error', 'Missing staff ID or token.');
-      return;
+    const logAsyncStorageContents = async () => {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const result = await AsyncStorage.multiGet(keys);
+      console.log('Current AsyncStorage contents:');
+      result.forEach(([key, value]) => {
+        console.log(`${key}: ${value}`);
+      });
+    } catch (error) {
+      console.error('Error reading AsyncStorage:', error);
     }
+  };
+  const checkAttendance = async () => {
+    try {
+      await logAsyncStorageContents(); // Add this line here for debugging
 
-    const id = parseInt(storedId, 10);
-    setStaffId(id);
+      const storedId = await AsyncStorage.getItem('staff_id');
+      const token = await AsyncStorage.getItem('token');
+      console.log('Stored Staff ID:', storedId);
+      console.log('Token:', token);
 
-    // Log fetching attendance data
-    console.log(`Fetching attendance data for staff ID: ${id} on ${todayDate}`);
+      if (!storedId || !token) {
+        Alert.alert('Error', 'Missing staff ID or token.');
+        return;
+      }
 
-    const res = await fetch('http://103.16.116.58:5050/getabsensi', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        token: token,
-      },
-    });
+      const id = parseInt(storedId, 10);
+      setStaffId(id);
 
-    const data = await res.json();
-    console.log('Attendance data received:', data);
+      // Log fetching attendance data
+      console.log(`Fetching attendance data for staff ID: ${id} on ${todayDate}`);
 
-    const attended = data.some(
-      (item: any) =>
-        item.staff_id === id && item.tanggal.startsWith(todayDate)
-    );
+      const res = await fetch('http://103.16.116.58:5050/getabsensi', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          token: token,
+        },
+      });
 
-    console.log('Already attended today:', attended);
+      const data = await res.json();
+      // console.log('Attendance data received:', data);
 
-    setHasAttended(attended);
-    setLoading(false);
-  } catch (error) {
-    console.error('Attendance check error:', error);
-    Alert.alert('Error', 'Failed to check attendance.');
-    setLoading(false);
-  }
-};
+      const attended = data.some(
+        (item: any) =>
+          item.staff_id === id && item.tanggal.startsWith(todayDate)
+      );
 
+      console.log('Already attended today:', attended);
 
-const markAttendance = async () => {
-  try {
-    const token = await AsyncStorage.getItem('token');
-    const storedId = await AsyncStorage.getItem('staff_id');
-
-    if (!storedId || !token) {
-      Alert.alert('Error', 'Missing staff ID or token.');
-      return;
+      setHasAttended(attended);
+      setLoading(false);
+    } catch (error) {
+      console.error('Attendance check error:', error);
+      Alert.alert('Error', 'Failed to check attendance.');
+      setLoading(false);
     }
+  };
 
-    const id = parseInt(storedId, 10);
-    setStaffId(id);
 
-    const currentTime = new Date().toTimeString().slice(0, 8); // "HH:MM:SS"
-    console.log(`Marking attendance for staff ID: ${id} at ${todayDate} ${currentTime}`);
+  const markAttendance = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const storedId = await AsyncStorage.getItem('staff_id');
 
-    const res = await fetch('http://103.16.116.58:5050/addabsensi', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        token: token,
-      },
-      body: JSON.stringify({
-        staff_id: id,
-        tanggal: todayDate,
-        jam_masuk: currentTime,
-        status: 'Hadir',
-        keterangan: 'Masuk telat waktu',
-      }),
-    });
+      if (!storedId || !token) {
+        Alert.alert('Error', 'Missing staff ID or token.');
+        return;
+      }
 
-    const responseText = await res.text();
+      const id = parseInt(storedId, 10);
+      setStaffId(id);
 
-    if (!res.ok) {
-      console.error('Mark attendance error response:', responseText);
-      throw new Error('Failed to add attendance');
+      const currentTime = new Date().toTimeString().slice(0, 8); // "HH:MM:SS"
+      console.log(`Marking attendance for staff ID: ${id} at ${todayDate} ${currentTime}`);
+
+      const res = await fetch('http://103.16.116.58:5050/addabsensi', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          token: token,
+        },
+        body: JSON.stringify({
+          staff_id: id,
+          tanggal: todayDate,
+          jam_masuk: currentTime,
+          status: 'Hadir',
+          keterangan: 'Masuk telat waktu',
+        }),
+      });
+
+      const responseText = await res.text();
+
+      if (!res.ok) {
+        console.error('Mark attendance error response:', responseText);
+        throw new Error('Failed to add attendance');
+      }
+
+      console.log('Attendance marked successfully:', responseText);
+      Alert.alert('Success', 'Attendance marked successfully.');
+      setHasAttended(true);
+    } catch (error) {
+      console.error('Mark attendance error:', error);
+      Alert.alert('Error', 'Failed to mark attendance.');
     }
-
-    console.log('Attendance marked successfully:', responseText);
-    Alert.alert('Success', 'Attendance marked successfully.');
-    setHasAttended(true);
-  } catch (error) {
-    console.error('Mark attendance error:', error);
-    Alert.alert('Error', 'Failed to mark attendance.');
-  }
-};
+  };
 
 
 
