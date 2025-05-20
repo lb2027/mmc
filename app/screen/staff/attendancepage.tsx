@@ -21,44 +21,21 @@ export default function AttendancePage() {
 
 const checkAttendance = async () => {
   try {
-    const storedId = await AsyncStorage.getItem('staff_id'); // user id
+    const storedId = await AsyncStorage.getItem('staff_id');
     const token = await AsyncStorage.getItem('token');
-    console.log('Stored User ID:', storedId);
+    console.log('Stored Staff ID:', storedId);
     console.log('Token:', token);
 
     if (!storedId || !token) {
-      Alert.alert('Error', 'Missing user ID or token.');
+      Alert.alert('Error', 'Missing staff ID or token.');
       return;
     }
 
-    const userId = parseInt(storedId, 10);
+    const id = parseInt(storedId, 10);
+    setStaffId(id);
 
-    // 1. Fetch staff data
-    const staffRes = await fetch('http://103.16.116.58:5050/staff', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        token: token,
-      },
-    });
-
-    const staffData = await staffRes.json();
-    console.log('Staff data received:', staffData);
-
-    // 2. Find staff entry where user_id === storedId
-    const matchedStaff = staffData.find((staff: any) => staff.user_id === userId);
-
-    if (!matchedStaff) {
-      Alert.alert('Error', 'No matching staff data found for this user.');
-      setLoading(false);
-      return;
-    }
-
-    // 3. Set matched staffId
-    setStaffId(matchedStaff.id);
-
-    // 4. Fetch attendance data
-    console.log(`Fetching attendance data for staff ID: ${matchedStaff.id} on ${todayDate}`);
+    // Log fetching attendance data
+    console.log(`Fetching attendance data for staff ID: ${id} on ${todayDate}`);
 
     const res = await fetch('http://103.16.116.58:5050/getabsensi', {
       method: 'GET',
@@ -73,10 +50,11 @@ const checkAttendance = async () => {
 
     const attended = data.some(
       (item: any) =>
-        item.staff_id === matchedStaff.id && item.tanggal.startsWith(todayDate)
+        item.staff_id === id && item.tanggal.startsWith(todayDate)
     );
 
     console.log('Already attended today:', attended);
+
     setHasAttended(attended);
     setLoading(false);
   } catch (error) {
@@ -87,36 +65,21 @@ const checkAttendance = async () => {
 };
 
 
-
 const markAttendance = async () => {
   try {
     const token = await AsyncStorage.getItem('token');
+    const storedId = await AsyncStorage.getItem('staff_id');
 
-    if (!staffId || !token) {
+    if (!storedId || !token) {
       Alert.alert('Error', 'Missing staff ID or token.');
       return;
     }
 
-    const now = new Date();
-    const currentTime = now.toTimeString().slice(0, 8); // "HH:MM:SS"
-    const todayDate = now.toISOString().split('T')[0];  // "YYYY-MM-DD"
+    const id = parseInt(storedId, 10);
+    setStaffId(id);
 
-    // Define min and max time boundaries
-    const minTime = new Date(`${todayDate}T08:00:00`); // Earliest "on time"
-    const maxTime = new Date(`${todayDate}T08:15:00`); // Latest "on time"
-
-    let keterangan = '';
-
-    if (now < minTime) {
-      keterangan = 'User datang terlalu cepat';
-    } else if (now >= minTime && now <= maxTime) {
-      keterangan = 'User datang tepat waktu';
-    } else {
-      const lateMinutes = Math.ceil((now.getTime() - maxTime.getTime()) / 60000);
-      keterangan = `User telat ${lateMinutes} menit`;
-    }
-
-    console.log(`Marking attendance for staff ID: ${staffId} at ${currentTime}, keterangan: ${keterangan}`);
+    const currentTime = new Date().toTimeString().slice(0, 8); // "HH:MM:SS"
+    console.log(`Marking attendance for staff ID: ${id} at ${todayDate} ${currentTime}`);
 
     const res = await fetch('http://103.16.116.58:5050/addabsensi', {
       method: 'POST',
@@ -125,11 +88,11 @@ const markAttendance = async () => {
         token: token,
       },
       body: JSON.stringify({
-        staff_id: staffId,
+        staff_id: id,
         tanggal: todayDate,
         jam_masuk: currentTime,
         status: 'Hadir',
-        keterangan: keterangan,
+        keterangan: 'Masuk telat waktu',
       }),
     });
 
@@ -148,6 +111,7 @@ const markAttendance = async () => {
     Alert.alert('Error', 'Failed to mark attendance.');
   }
 };
+
 
 
 
