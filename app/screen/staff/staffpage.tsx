@@ -11,6 +11,10 @@ import { useFonts, Poppins_400Regular, Poppins_700Bold } from '@expo-google-font
 const screenWidth = Dimensions.get('window').width;
 
 export default function StaffPage() {
+  const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [transactionId, setTransactionId] = useState<string | null>(null); // from soldproduk
   const [products, setProducts] = useState([]);
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [quantities, setQuantities] = useState<{ [key: string]: string }>({});
@@ -74,6 +78,49 @@ export default function StaffPage() {
     setQuantities({ ...quantities, [produkId]: qty });
   };
 
+  const submitInvoice = async () => {
+  const token = await AsyncStorage.getItem('token');
+  const username = await AsyncStorage.getItem('username');
+
+  try {
+    const res = await fetch('http://103.16.116.58:5050/invoice/auto-generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        token: token ?? '',
+      },
+      body: JSON.stringify({
+        transaction_id: transactionId,
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        cashier_name: username,
+        auto_print: false,
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error('Invoice error:', text);
+      //Alert.alert('Failed', 'Invoice generation failed.');
+    } else {
+      //Alert.alert('Success', 'Invoice generated.');
+      setInvoiceModalVisible(false);
+      setCustomerName('');
+      setCustomerPhone('');
+      const invoiceId = transactionId;
+      setTransactionId(null);
+      router.push({
+        pathname: '/screen/staff/invoicewebview',
+        params: { transaction_id: invoiceId },
+      });
+    }
+  } catch (err) {
+    console.error('Submit invoice error:', err);
+    Alert.alert('Error', 'Failed to submit invoice.');
+  }
+};
+
+
   const handleCheckout = async () => {
     if (selectedItems.length === 0) {
       Alert.alert('Warning', 'Please select at least one product.');
@@ -116,11 +163,14 @@ export default function StaffPage() {
 
       const result = await res.json();
 
-      if (!res.ok) {
-        console.error('SoldProduk error:', result);
-        Alert.alert('Failed', result?.error || 'Failed to process sold items.');
-        return;
-      }
+      // if (!res.ok) {
+      //   console.error('SoldProduk error:', result);
+      //   Alert.alert('Failed', result?.error || 'Failed to process sold items.');
+      //   return;
+      // }
+      const newTransactionId = result?.transaction_id; // assume backend returns this
+      setTransactionId(newTransactionId);
+      setInvoiceModalVisible(true); // open modal for name/phone
 
       for (const item of selectedItems) {
         const qty = parseInt(quantities[item.produk_id]);
@@ -142,7 +192,7 @@ export default function StaffPage() {
         });
       }
 
-      Alert.alert('Success', 'All items checked out successfully!');
+      //Alert.alert('Success', 'All items checked out successfully!');
       setSelectedItems([]);
       setQuantities({});
       fetchProducts();
@@ -530,6 +580,57 @@ export default function StaffPage() {
           </View>
         </View>
       </Modal>
+      {/* Invoice Modal */}
+      <Modal visible={invoiceModalVisible} transparent={true} animationType="slide">
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+            <View style={{
+              backgroundColor: 'white',
+              padding: 20,
+              borderRadius: 10,
+              width: '90%',
+            }}>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Customer Info</Text>
+              <TextInput
+                placeholder="Customer Name"
+                value={customerName}
+                onChangeText={setCustomerName}
+                style={{
+                  borderBottomWidth: 1,
+                  marginBottom: 15,
+                  padding: 8,
+                }}
+              />
+              <TextInput
+                placeholder="Customer Phone"
+                value={customerPhone}
+                onChangeText={setCustomerPhone}
+                keyboardType="phone-pad"
+                style={{
+                  borderBottomWidth: 1,
+                  marginBottom: 15,
+                  padding: 8,
+                }}
+              />
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#F3AA36',
+                  padding: 12,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                }}
+                onPress={submitInvoice}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Submit</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
     </View>
   );
 }
