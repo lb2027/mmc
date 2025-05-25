@@ -162,7 +162,7 @@ const RegisterScreen = () => {
         >
           <View style={styles.container}>
             <View style={styles.formContainer}>
-              <Text style={styles.title}>BINTANG{"\n"}JAWA</Text>
+              <Text style={styles.title}>BINTANG{"\n"}JAYA</Text>
               {/* Your input fields */}
               <TextInput
                 style={styles.input}

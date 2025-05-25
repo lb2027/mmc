@@ -22,14 +22,20 @@
         "backgroundColor": "#ffffff"
       },
       "theme": {
-        "primaryColor": "#F3AA36" 
-      }
+        "primaryColor": "#F3AA36"
+      },
+      "package": "com.r3nyah.mmc"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3f9b820f-fd62-4a36-83f4-b368ef32c30e"
+      }
+    }
   }
 }
