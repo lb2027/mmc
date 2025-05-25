@@ -74,20 +74,39 @@ export default function HistoryPage() {
 
   const renderGroupedItem = ({ item }: { item: any }) => {
     const date = new Date(item.tanggal).toLocaleString();
+
+    const totalProfit = Array.isArray(item.items)
+      ? item.items.reduce((sum: number, subItem: any) => {
+          const profit = (subItem.harga_jual - subItem.harga_beli) * subItem.jumlah_terjual;
+          return sum + profit;
+        }, 0)
+      : 0;
+
     return (
       <View style={styles.card}>
         <Text style={styles.title}>Transaction ID: {item.transaksi_id}</Text>
         <Text style={styles.date}>{date}</Text>
-        {Array.isArray(item.items) && item.items.map((subItem: any, idx: number) => (
-          <View key={idx} style={{ marginTop: 8, marginLeft: 10 }}>
-            <Text style={styles.text}>• {subItem.nama_produk}</Text>
-            <Text style={styles.text}>  Buy: Rp{subItem.harga_beli} | Sell: Rp{subItem.harga_jual}</Text>
-            <Text style={styles.text}>  Qty: {subItem.jumlah_terjual} | Total: Rp{subItem.total_harga}</Text>
-          </View>
-        ))}
+
+        {/* Product cards */}
+        {Array.isArray(item.items) &&
+          item.items.map((subItem: any, idx: number) => (
+            <View key={idx} style={styles.itemCard}>
+              <Text style={styles.itemTitle}>{subItem.nama_produk}</Text>
+              <Text style={styles.text}>Buy: Rp{subItem.harga_beli} | Sell: Rp{subItem.harga_jual}</Text>
+              <Text style={styles.text}>Qty: {subItem.jumlah_terjual}</Text>
+              <Text style={styles.text}>Total: Rp{subItem.total_harga}</Text>
+            </View>
+          ))}
+
+        {/* Total profit section */}
+        <View style={styles.profitContainer}>
+          <Text style={styles.profitText}>Total Profit: Rp{totalProfit}</Text>
+        </View>
       </View>
     );
   };
+
+
 
   if (!fontsLoaded) return null;
 
@@ -164,5 +183,42 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 5,
   },
-
+  gridContainer: {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  justifyContent: 'space-between',
+  marginTop: 10,
+  },
+  gridItem: {
+    width: '48%',
+    backgroundColor: '#f9f9f9',
+    padding: 8,
+    marginBottom: 10,
+    borderRadius: 8,
+  },
+  itemCard: {
+    backgroundColor: '#F9F9F9',
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#F3AA36',
+  },
+  itemTitle: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 15,
+    marginBottom: 4,
+  },
+  profitContainer: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#ddd',
+  },
+  profitText: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 14,
+    color: '#27AE60',
+    textAlign: 'right',
+  },
 });

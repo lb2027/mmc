@@ -52,7 +52,7 @@ export default function SplashScreen() {
   return (
     <View style={styles.container}>
       <Animated.Text style={[styles.text, { transform: [{ translateX }] }]}>
-        Bintang Jawa
+        Bintang Jaya
       </Animated.Text>
     </View>
   );

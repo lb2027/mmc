@@ -62,8 +62,13 @@ export default function StaffPage() {
       setQuantities(newQuantities);
     } else {
       setSelectedItems([...selectedItems, item]);
+      // Set default quantity to "1" if not already set
+      if (!quantities[item.produk_id]) {
+        setQuantities((prev) => ({ ...prev, [item.produk_id]: '1' }));
+      }
     }
   };
+
 
   const handleQuantityChange = (produkId: string, qty: string) => {
     setQuantities({ ...quantities, [produkId]: qty });
@@ -250,64 +255,147 @@ export default function StaffPage() {
       )}
 
       {/* Bottom Checkout Panel */}
-      {selectedItems.length > 0 && (
-        <View style={{
-          position: 'absolute',
-          bottom: 0,
-          width: screenWidth,
+      {selectedItems.length === 1 ? (
+        // Single item selected: show Checkout directly
+      <View
+        style={{
           backgroundColor: '#fff',
-          padding: 20,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          elevation: 10,
-        }}>
-          {(selectedItems.length > 3 ? selectedItems.slice(0, 3) : selectedItems).map((item) => (
-            <View key={item.produk_id} style={{ marginBottom: 10 }}>
-              <Text style={{ fontWeight: 'bold' }}>{item.nama}</Text>
-              <TextInput
-                placeholder="Quantity"
-                value={quantities[item.produk_id] || ''}
-                keyboardType="numeric"
-                onChangeText={(val) => handleQuantityChange(item.produk_id, val)}
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#ccc',
-                  borderRadius: 8,
-                  padding: 10,
-                  marginTop: 5,
-                }}
-              />
-            </View>
-          ))}
+          borderRadius: 10,
+          padding: 12,
+          marginHorizontal: 12,
+          marginVertical: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.08,
+          shadowRadius: 2,
+          elevation: 2,
+        }}
+      >
+        <Text
+          style={{
+            fontWeight: 'bold',
+            fontSize: 12,
+            marginBottom: 10,
+            color: '#333',
+          }}
+        >
+          {selectedItems[0].nama}
+        </Text>
 
-          {selectedItems.length > 3 && (
-            <Pressable
-              onPress={() => setShowAllModal(true)}
-              style={{
-                backgroundColor: '#ccc',
-                padding: 10,
-                borderRadius: 8,
-                alignItems: 'center',
-                marginBottom: 10,
-              }}
-            >
-              <Text style={{ fontWeight: 'bold' }}>Show All Items</Text>
-            </Pressable>
-          )}
-
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 12,
+          }}
+        >
           <Pressable
-            onPress={handleCheckout}
+            onPress={() => {
+              const current = parseInt(quantities[selectedItems[0].produk_id]) || 1;
+              if (current > 1) {
+                handleQuantityChange(selectedItems[0].produk_id, String(current - 1));
+              }
+            }}
             style={{
-              backgroundColor: '#F3AA36',
-              padding: 12,
+              width: 40,
+              height: 40,
               borderRadius: 8,
-              alignItems: 'center'
+              backgroundColor: '#eee',
+              justifyContent: 'center',
+              alignItems: 'center',
             }}
           >
-            <Text style={{ color: 'white', fontWeight: 'bold' }}>Checkout</Text>
+            <Text style={{ fontSize: 20 }}>−</Text>
+          </Pressable>
+
+          <TextInput
+            value={quantities[selectedItems[0].produk_id] || '1'}
+            onChangeText={(val) => handleQuantityChange(selectedItems[0].produk_id, val)}
+            keyboardType="numeric"
+            placeholder="Qty"
+            style={{
+              width: 200,
+              height: 40,
+              borderWidth: 1,
+              borderColor: '#ccc',
+              borderRadius: 8,
+              paddingHorizontal: 10,
+              fontSize: 14,
+              textAlign: 'center',
+              marginHorizontal: 10,
+            }}
+          />
+
+          <Pressable
+            onPress={() => {
+              const current = parseInt(quantities[selectedItems[0].produk_id]) || 1;
+              handleQuantityChange(selectedItems[0].produk_id, String(current + 1));
+            }}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 8,
+              backgroundColor: '#eee',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ fontSize: 20 }}>+</Text>
           </Pressable>
         </View>
-      )}
+
+        <Pressable
+          onPress={handleCheckout}
+          style={{
+            backgroundColor: '#F3AA36',
+            paddingVertical: 10,
+            borderRadius: 8,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>Checkout</Text>
+        </Pressable>
+      </View>
+
+
+
+      ) : selectedItems.length > 1 ? (
+        // More than one item: show "Open Cart"
+      <TouchableOpacity
+        onPress={() => setShowAllModal(true)}
+        style={{
+          position: 'absolute',
+          bottom: 20,
+          right: 20,
+          backgroundColor: '#F3AA36',
+          borderRadius: 30,
+          padding: 16,
+          elevation: 5,
+        }}
+      >
+        <Ionicons name="cart-outline" size={28} color="#fff" />
+        {selectedItems.length > 0 && (
+          <View
+            style={{
+              position: 'absolute',
+              top: -6,
+              right: -6,
+              backgroundColor: 'red',
+              borderRadius: 10,
+              width: 20,
+              height: 20,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ color: 'white', fontSize: 12 }}>{selectedItems.length}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
+      ) : null}
+
 
       {/* Fullscreen Modal Overlay */}
       <Modal
@@ -330,28 +418,92 @@ export default function StaffPage() {
           }}>
             <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}>Selected Items</Text>
 
-            <FlatList
-              data={selectedItems}
-              keyExtractor={(item) => item.produk_id.toString()}
-              renderItem={({ item }) => (
-                <View style={{ marginBottom: 10 }}>
-                  <Text style={{ fontWeight: 'bold' }}>{item.nama}</Text>
-                  <TextInput
-                    placeholder="Quantity"
-                    value={quantities[item.produk_id] || ''}
-                    keyboardType="numeric"
-                    onChangeText={(val) => handleQuantityChange(item.produk_id, val)}
-                    style={{
-                      borderWidth: 1,
-                      borderColor: '#ccc',
-                      borderRadius: 8,
-                      padding: 10,
-                      marginTop: 5,
-                    }}
-                  />
+          <FlatList
+            data={selectedItems}
+            keyExtractor={(item) => item.produk_id.toString()}
+            renderItem={({ item }) => (
+              <View style={{
+                flexDirection: 'row',
+                marginBottom: 15,
+                alignItems: 'center',
+              }}>
+                <Image
+                  source={{ uri: `http://103.16.116.58:5050/images/${item.foto}` }}
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 10,
+                    marginRight: 15,
+                  }}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{item.nama}</Text>
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginTop: 8,
+                  }}>
+                    <Pressable
+                      onPress={() => {
+                        const current = parseInt(quantities[item.produk_id]) || 0;
+                        if (current > 0) {
+                          handleQuantityChange(item.produk_id, String(current - 1));
+                        }
+                      }}
+                      style={{
+                        width: 36,
+                        height: 36,
+                        backgroundColor: '#ddd',
+                        borderRadius: 6,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginRight: 6,
+                      }}
+                    >
+                      <Text style={{ fontSize: 18 }}>−</Text>
+                    </Pressable>
+
+                    <TextInput
+                      placeholder="Qty"
+                      value={quantities[item.produk_id] || ''}
+                      keyboardType="numeric"
+                      onChangeText={(val) => handleQuantityChange(item.produk_id, val)}
+                      style={{
+                        width: 100,
+                        height: 36,
+                        borderWidth: 1,
+                        borderColor: '#ccc',
+                        borderRadius: 6,
+                        padding: 5,
+                        textAlign: 'center',
+                        marginHorizontal: 2,
+                      }}
+                    />
+
+                    <Pressable
+                      onPress={() => {
+                        const current = parseInt(quantities[item.produk_id]) || 0;
+                        handleQuantityChange(item.produk_id, String(current + 1));
+                      }}
+                      style={{
+                        width: 36,
+                        height: 36,
+                        backgroundColor: '#ddd',
+                        borderRadius: 6,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginLeft: 6,
+                      }}
+                    >
+                      <Text style={{ fontSize: 18 }}>+</Text>
+                    </Pressable>
+                  </View>
                 </View>
-              )}
-            />
+              </View>
+            )}
+          />
+
+
 
             <Pressable
               onPress={handleCheckout}
