@@ -72,22 +72,30 @@ export default function HistoryPage() {
     );
   };
 
-  const renderGroupedItem = ({ item }: { item: any }) => {
-    const date = new Date(item.tanggal).toLocaleString();
+const renderGroupedItem = ({ item }: { item: any }) => {
+  const date = new Date(item.tanggal).toLocaleString();
 
-    const totalProfit = Array.isArray(item.items)
-      ? item.items.reduce((sum: number, subItem: any) => {
-          const profit = (subItem.harga_jual - subItem.harga_beli) * subItem.jumlah_terjual;
-          return sum + profit;
-        }, 0)
-      : 0;
+  const totalProfit = Array.isArray(item.items)
+    ? item.items.reduce((sum: number, subItem: any) => {
+        const profit = (subItem.harga_jual - subItem.harga_beli) * subItem.jumlah_terjual;
+        return sum + profit;
+      }, 0)
+    : 0;
 
-    return (
+  return (
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={() =>
+      router.push({
+        pathname: '/screen/staff/invoicewebview',
+        params: { transaction_id: item.transaksi_id },
+      })
+  }
+    >
       <View style={styles.card}>
         <Text style={styles.title}>Transaction ID: {item.transaksi_id}</Text>
         <Text style={styles.date}>{date}</Text>
 
-        {/* Product cards */}
         {Array.isArray(item.items) &&
           item.items.map((subItem: any, idx: number) => (
             <View key={idx} style={styles.itemCard}>
@@ -98,13 +106,15 @@ export default function HistoryPage() {
             </View>
           ))}
 
-        {/* Total profit section */}
         <View style={styles.profitContainer}>
           <Text style={styles.profitText}>Total Profit: Rp{totalProfit}</Text>
         </View>
       </View>
-    );
-  };
+    </TouchableOpacity>
+
+  );
+};
+
 
 
 

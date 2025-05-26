@@ -88,7 +88,7 @@ export default function LoginPage() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>BINTANG{"\n"}JAYA</Text>
+      <Text style={styles.title}>BINTANG{"\n"}JAWA</Text>
 
       <View style={styles.formContainer}>
         <TextInput

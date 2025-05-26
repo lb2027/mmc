@@ -42,11 +42,11 @@ const RegisterScreen = () => {
 
     const handleRegister = async () => {
     try {
-      console.log('🔐 Logging in as mdr...');
+      console.log('🔐 Logging in as rayhan...');
       const loginRes = await fetch('http://103.16.116.58:5050/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'mdr', password: 'mdr' }),
+        body: JSON.stringify({ username: 'rayhan', password: '12345678' }),
       });
 
       const loginData = await loginRes.json();
@@ -69,7 +69,7 @@ const RegisterScreen = () => {
         body: JSON.stringify({
           username: form.username,
           password: form.password,
-          role: 'admin',
+          role: 'staff',
         }),
       });
 
@@ -130,7 +130,13 @@ const RegisterScreen = () => {
         return;
       }
 
-      Alert.alert('Success', 'User & staff successfully registered!');
+      Alert.alert('Success', 'User & staff successfully registered!', [
+        {
+          text: 'OK',
+          onPress: () => router.replace('./login'),
+        },
+      ]);
+
       setForm({
         username: '',
         password: '',
