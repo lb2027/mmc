@@ -6,7 +6,8 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Dimensions
+  Dimensions,
+  FlatList
 } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -28,6 +29,11 @@ export default function AdminDashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [showAllTransactions, setShowAllTransactions] = useState(false);
+  const [allTransactions, setAllTransactions] = useState([]); // full list
+  const [visibleTransactions, setVisibleTransactions] = useState([]); // currently displayed
+  const [itemsToLoad, setItemsToLoad] = useState(10); // chunk size
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const listRef = React.useRef<FlatList>(null);
 
   const formatRupiah = (number: number) => {
     return 'Rp' + number.toLocaleString('id-ID');
@@ -76,14 +82,16 @@ export default function AdminDashboard() {
             })),
           }
         : null;
+    setAllTransactions(history);
+    setVisibleTransactions(history.slice(0, itemsToLoad));
+    setData({
+      history,
+      daily,
+      weekly,
+      monthly,
+      inventory: inventory.totalProducts,
+    });
 
-      setData({
-        history,
-        daily,
-        weekly,
-        monthly,
-        inventory: inventory.totalProducts,
-      });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -97,6 +105,12 @@ export default function AdminDashboard() {
     console.log('Weekly:', data.weekly);
     console.log('Monthly:', data.monthly);
   }, []);
+
+  const loadMoreTransactions = () => {
+    const newLength = visibleTransactions.length + itemsToLoad;
+    const nextItems = allTransactions.slice(0, newLength);
+    setVisibleTransactions(nextItems);
+  };
 
   const weeklySalesTotal = data.weekly?.sales?.reduce(
     (sum: number, s: any) => sum + (s?.total || 0),
@@ -124,134 +138,139 @@ export default function AdminDashboard() {
     );
   }
 
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-    <View style={styles.headerContainer}>
-      <Text style={styles.title}>Admin Dashboard</Text>
-      <TouchableOpacity
-        onPress={() => router.push('/screen/admin/adminpage')}
-        style={styles.iconButton}
-      >
-        <Ionicons name="settings-outline" size={24} color="#F3AA36" />
-      </TouchableOpacity>
-    </View>
-      <View style={styles.chartContainer}>
-        <LineChart
-          data={chartData}
-          width={screenWidth - 32}
-          height={280}
-          fromZero={true}
-          withDots={true}
-          withInnerLines={false}
-          withHorizontalLabels={false}
-          withVerticalLabels={true}
-          chartConfig={{
-            backgroundColor: '#ffffff',
-            backgroundGradientFrom: '#ffffff',
-            backgroundGradientTo: '#ffffff',
-            decimalPlaces: 0,
-            color: (opacity = 1) => `rgba(243, 170, 54, ${opacity})`,
-            labelColor: () => '#374151',
-            propsForLabels: {
-              fontSize: 14,
-            },
-            propsForDots: {
-              r: '5',
-              strokeWidth: '2',
-              stroke: '#ffa726',
-            },
-          }}
-          bezier
-          style={{
-            marginVertical: 8,
-            borderRadius: 16,
-          }}
-        />
-
-        {/* Overlay value labels manually
-        <View
-          style={{
-            position: 'absolute',
-            top: 50,
-            left: 32,
-            width: screenWidth - 32,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            paddingHorizontal: 8,
-          }}
-        >
-          {chartData.datasets[0].data.map((val, idx) => (
-            <Text key={idx} style={{ fontSize: 8, color: '#374151' }}>
-              {(val / 1000).toFixed(1)}K
+return (
+  <>
+    <FlatList
+      style={styles.flatListContainer}
+      ref={listRef}
+      data={visibleTransactions}
+      keyExtractor={(item, index) => index.toString()}
+      renderItem={({ item }) => {
+        const date = new Date(item.tanggal_transaksi);
+        return (
+          <View style={styles.transactionCard}>
+            <Text style={styles.transactionTitle}>{item.nama_produk}</Text>
+            <Text style={styles.transactionDetail}>
+              {item.jumlah_terjual} pcs - Rp {item.total_harga.toLocaleString()}
             </Text>
-          ))}
-        </View> */}
-      </View>
+            <Text style={styles.transactionDate}>
+              {date.toLocaleDateString()} {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+          </View>
+        );
+      }}
+      onEndReached={loadMoreTransactions}
+      onEndReachedThreshold={0.5}
+      scrollEventThrottle={16}
+      onScroll={({ nativeEvent }) => {
+        if (nativeEvent.contentOffset.y > 100) {
+          setShowScrollTop(true);
+        } else {
+          setShowScrollTop(false);
+        }
+      }}
+      ListEmptyComponent={
+        !loading && <Text style={styles.placeholder}>No transactions found.</Text>
+      }
+      ListFooterComponent={
+        visibleTransactions.length < allTransactions.length ? (
+          <ActivityIndicator color="#F3AA36" style={{ marginVertical: 16 }} />
+        ) : null
+      }
+      ListHeaderComponent={
+        <View style={styles.container}>
+          <View style={styles.headerContainer}>
+            <Text style={styles.title}>Admin Dashboard</Text>
+            <TouchableOpacity
+              onPress={() => router.push('/screen/admin/adminpage')}
+              style={styles.iconButton}
+            >
+              <Ionicons name="settings-outline" size={24} color="#F3AA36" />
+            </TouchableOpacity>
+          </View>
 
-      <View style={styles.cardRow}>
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Daily Sales</Text>
-          <Text style={styles.cardValue}>
-            Rp {data.daily?.totalSales?.toLocaleString() || '-'}
-          </Text>
-        </View>
+          <View style={styles.chartContainer}>
+            <LineChart
+              data={chartData}
+              width={screenWidth - 32}
+              height={280}
+              fromZero={true}
+              withDots={true}
+              withInnerLines={false}
+              withHorizontalLabels={false}
+              withVerticalLabels={true}
+              chartConfig={{
+                backgroundColor: '#ffffff',
+                backgroundGradientFrom: '#ffffff',
+                backgroundGradientTo: '#ffffff',
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(243, 170, 54, ${opacity})`,
+                labelColor: () => '#374151',
+                propsForLabels: {
+                  fontSize: 14,
+                },
+                propsForDots: {
+                  r: '5',
+                  strokeWidth: '2',
+                  stroke: '#ffa726',
+                },
+              }}
+              bezier
+              style={{
+                marginVertical: 8,
+                borderRadius: 16,
+              }}
+            />
+          </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Weekly Sales</Text>
-          <Text style={styles.cardValue}>
-            Rp {weeklySalesTotal.toLocaleString()}
-          </Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Monthly Revenue</Text>
-          <Text style={styles.cardValue}>
-            Rp {data.monthly?.totalRevenue?.toLocaleString() || '-'}
-          </Text>
-        </View>
-      </View>
-
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 24 }}>
-      <Text style={styles.sectionTitle}>Transactions</Text>
-      <TouchableOpacity
-        onPress={() => setShowAllTransactions(prev => !prev)}
-        style={styles.iconToggleButton}
-      >
-        <Ionicons
-          name={showAllTransactions ? 'chevron-up-outline' : 'chevron-down-outline'}
-          size={20}
-          color="#F3AA36"
-        />
-      </TouchableOpacity>
-
-
-
-      </View>
-      {data.history.length > 0 ? (
-        (showAllTransactions ? data.history : data.history.slice(0, 5)).map((item: any, index: number) => {
-          const date = new Date(item.tanggal_transaksi);
-          return (
-            <View key={index} style={styles.transactionCard}>
-              <Text style={styles.transactionTitle}>{item.nama_produk}</Text>
-              <Text style={styles.transactionDetail}>
-                {item.jumlah_terjual} pcs - Rp {item.total_harga.toLocaleString()}
-              </Text>
-              <Text style={styles.transactionDate}>
-                {date.toLocaleDateString()} {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          <View style={styles.cardRow}>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Daily Sales</Text>
+              <Text style={styles.cardValue}>
+                Rp {data.daily?.totalSales?.toLocaleString() || '-'}
               </Text>
             </View>
-          );
-        })
-      ) : (
-        <Text style={styles.placeholder}>No transactions found.</Text>
-      )}
 
-      {/* <Text style={styles.inventoryText}>
-        Total Products: {data.inventory || 0}
-      </Text> */}
-    </ScrollView>
-  );
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Weekly Sales</Text>
+              <Text style={styles.cardValue}>
+                Rp {weeklySalesTotal.toLocaleString()}
+              </Text>
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Monthly Revenue</Text>
+              <Text style={styles.cardValue}>
+                Rp {data.monthly?.totalRevenue?.toLocaleString() || '-'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: 24
+          }}>
+            <Text style={styles.sectionTitle}>Transactions</Text>
+          </View>
+        </View>
+      }
+    />
+
+    {showScrollTop && (
+      <TouchableOpacity
+        onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+        style={styles.scrollTopButton}
+      >
+        <Ionicons name="arrow-up-circle" size={48} color="#F3AA36" />
+      </TouchableOpacity>
+    )}
+  </>
+);
+
 }
+
 
 const styles = StyleSheet.create({
   center: {
@@ -320,13 +339,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#fef3c7',
     borderRadius: 10,
     padding: 12,
-    marginTop: 10,
+    marginVertical: 8,
+    marginHorizontal: 16, 
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    elevation: 1,
+    elevation: 2,
   },
+  scrollTopButton: {
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+    zIndex: 10,
+    backgroundColor: 'transparent',
+  },
+
   transactionTitle: {
     fontSize: 15,
     fontWeight: '600',
@@ -360,6 +388,9 @@ const styles = StyleSheet.create({
   paddingVertical: 6,
   borderRadius: 20,
   elevation: 2,
+  },
+  flatListContainer: {
+    backgroundColor: '#fff',
   },
   toggleButtonText: {
     color: 'white',
